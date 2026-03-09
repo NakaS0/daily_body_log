@@ -1,3 +1,5 @@
+"""監視フォルダに置かれた OMRON CSV を自動で取り込む管理コマンド。"""
+
 import time
 from pathlib import Path
 
@@ -7,9 +9,12 @@ from bodylog.importers import import_csv_records, move_processed_file
 
 
 class Command(BaseCommand):
+    """監視ループを回しながら CSV を順次取り込む。"""
+
     help = "監視フォルダに置かれた OMRON CSV を自動取り込みします"
 
     def add_arguments(self, parser) -> None:
+        """監視対象フォルダや待機秒数などの実行オプションを定義する。"""
         parser.add_argument(
             "--watch-dir",
             default="data/omron_inbox",
@@ -39,6 +44,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options) -> None:
+        """監視先の準備を行い、停止されるまで取り込みループを回す。"""
         watch_dir = Path(options["watch_dir"])
         processed_dir = Path(options["processed_dir"])
         failed_dir = Path(options["failed_dir"])
@@ -54,6 +60,7 @@ class Command(BaseCommand):
         self.stdout.write(f"失敗時: {failed_dir.resolve()}")
         self.stdout.write("停止するには Ctrl+C を押してください。")
 
+        # 定期的に監視フォルダを確認し、新しい CSV があれば処理する。
         try:
             while True:
                 self._process_pending_files(
@@ -73,6 +80,7 @@ class Command(BaseCommand):
         failed_dir: Path,
         stable_seconds: int,
     ) -> None:
+        """書き込み完了済みの CSV だけを判定して取り込み・退避する。"""
         now = time.time()
         csv_files = sorted(path for path in watch_dir.glob("*.csv") if path.is_file())
 

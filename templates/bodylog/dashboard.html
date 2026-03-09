@@ -1,4 +1,5 @@
 {% load static %}
+<!-- 記録ページ本体。月次表、クイック入力、食生活表示、チャットを表示するテンプレート。 -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -578,6 +579,7 @@
         const saveTimers = new Map();
         let targetWeightSaveTimer = null;
 
+        // 保存済みの目標体重を localStorage から読み込む。
         function loadTargetWeight() {
             if (!targetWeightInput) {
                 return;
@@ -588,6 +590,7 @@
             }
         }
 
+        // 目標体重の現在値を localStorage に保存する。
         function persistTargetWeight() {
             if (!targetWeightInput) {
                 return;
@@ -600,11 +603,13 @@
             }
         }
 
+        // 入力途中の細かい変更をまとめて保存するために待機時間を入れる。
         function scheduleTargetWeightSave() {
             window.clearTimeout(targetWeightSaveTimer);
             targetWeightSaveTimer = window.setTimeout(persistTargetWeight, 250);
         }
 
+        // 選択中の食事内容に応じて文字色クラスを付け替える。
         function setMealSelectColor(select) {
             Array.from(select.classList)
                 .filter((name) => name.startsWith("meal-value-"))
@@ -614,10 +619,12 @@
             }
         }
 
+        // 画面内の食事プルダウンへ一括で色クラスを反映する。
         function setAllMealSelectColors(root = document) {
             root.querySelectorAll(".meal-select").forEach(setMealSelectColor);
         }
 
+        // 朝昼夕の組み合わせから 2 食 / 3 食の表示文字列を作る。
         function computeReplacementCount(scope) {
             const breakfast = scope.querySelector('[data-field="breakfast"]').value;
             const lunch = scope.querySelector('[data-field="lunch"]').value;
@@ -631,6 +638,7 @@
             return "";
         }
 
+        // 置き換え対象の食事が何食入力されたかを数える。
         function computeReplacementMealCount(scope) {
             const breakfast = scope.querySelector('[data-field="breakfast"]').value;
             const lunch = scope.querySelector('[data-field="lunch"]').value;
@@ -648,6 +656,7 @@
             return count;
         }
 
+        // 食生活欄の画像や表示状態を現在の入力内容に合わせて更新する。
         function updateAchievementMark(scope) {
             const replacementCount = computeReplacementCount(scope);
             const replacementMealCount = computeReplacementMealCount(scope);
@@ -681,6 +690,7 @@
             }
         }
 
+        // 2 食 / 3 食ボタンから朝昼夕の定型値をまとめて入力する。
         function setReplacementValues(scope, mode) {
             const breakfast = scope.querySelector('[data-field="breakfast"]');
             const lunch = scope.querySelector('[data-field="lunch"]');
@@ -694,6 +704,7 @@
             syncTodayScopes(scope);
         }
 
+        // 上部のクイック入力と当日行の内容を相互に同期する。
         function syncTodayScopes(sourceScope) {
             if (sourceScope.dataset.date !== todayDate) {
                 return;
@@ -716,11 +727,13 @@
             });
         }
 
+        // 保存結果やエラーを上部ステータス欄に表示する。
         function showGlobalStatus(message, isError = false) {
             globalStatus.textContent = message;
             globalStatus.classList.toggle("error", isError);
         }
 
+        // 1 行またはクイック入力の内容を API へ送り保存する。
         async function saveScope(scope) {
             const dateValue = scope.dataset.date;
             const formData = new FormData();
@@ -746,12 +759,14 @@
             }
         }
 
+        // 入力変更ごとに即保存しすぎないよう少し遅延させる。
         function scheduleSave(scope) {
             const key = `${scope.dataset.scope}:${scope.dataset.date}`;
             window.clearTimeout(saveTimers.get(key));
             saveTimers.set(key, window.setTimeout(() => saveScope(scope), 260));
         }
 
+        // 空欄でも placeholder の前日値を起点に上下キー増減できるようにする。
         function applyPlaceholderStep(input, direction) {
             if (input.value || !input.placeholder) {
                 return false;
@@ -764,12 +779,14 @@
             return true;
         }
 
+        // 表内移動用に、行と列の対応表を作る。
         function getNavMatrix() {
             return Array.from(document.querySelectorAll(".table-row")).map((row) =>
                 Array.from(row.querySelectorAll("[data-cell]")).sort((a, b) => Number(a.dataset.cell) - Number(b.dataset.cell))
             );
         }
 
+        // 矢印キーで上下左右の隣接セルへフォーカスを移動する。
         function focusRelative(current, rowOffset, colOffset) {
             const matrix = getNavMatrix();
             let rowIndex = -1;
@@ -797,6 +814,7 @@
             }
         }
 
+        // グラフ描画用に最小値・最大値の表示範囲を決める。
         function getMetricBounds(values, targetValue = null) {
             const filtered = values.filter((value) => value !== null);
             if (targetValue !== null) {
@@ -811,6 +829,7 @@
             return { min: Math.max(0, min - pad), max: max + pad };
         }
 
+        // 折れ線グラフ用の SVG path データを組み立てる。
         function buildLinePath(points, metric, bounds, dims) {
             const usableWidth = dims.width - dims.left - dims.right;
             const usableHeight = dims.height - dims.top - dims.bottom;
@@ -823,6 +842,7 @@
             }).join(" ");
         }
 
+        // 指定した指標の単独グラフを SVG に描画する。
         function renderChart(svgId, metric, lineColor, targetValue = null) {
             const svg = document.getElementById(svgId);
             const dims = { width: 920, height: 280, left: 54, right: 20, top: 16, bottom: 34 };
@@ -868,12 +888,14 @@
             svg.innerHTML = html;
         }
 
+        // モーダル内の全グラフをまとめて描画し直す。
         function renderAllCharts() {
             const targetValue = targetWeightInput.value ? Number.parseFloat(targetWeightInput.value) : null;
             renderChart("weight-chart", "weight", "#2f6dcc", Number.isNaN(targetValue) ? null : targetValue);
             renderChart("visceral-chart", "visceral", "#8a42bf", null);
         }
 
+        // チャット欄へユーザーまたはボットの発言を 1 件追加する。
         function appendChatMessage(role, message) {
             const row = document.createElement("div");
             row.className = "chat-row";
@@ -885,6 +907,7 @@
             row.scrollIntoView({ block: "end" });
         }
 
+        // 簡易チャットボットの返答内容を質問文から決める。
         function buildChatReply(message) {
             if (message.includes("食事")) {
                 return "主食・主菜・副菜をそろえつつ、たんぱく質と野菜を毎食入れると続けやすいです。";

@@ -1,4 +1,5 @@
 {% load static %}
+<!-- 分析ページ本体。複合グラフと月間カレンダーを表示するテンプレート。 -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -493,6 +494,7 @@
         const TARGET_WEIGHT_STORAGE_KEY = "daily_body_log_target_weight";
         let targetWeightSaveTimer = null;
 
+        // 保存済みの目標体重を localStorage から復元する。
         function loadTargetWeight() {
             const savedValue = window.localStorage.getItem(TARGET_WEIGHT_STORAGE_KEY);
             if (savedValue) {
@@ -500,6 +502,7 @@
             }
         }
 
+        // 入力された目標体重を localStorage に保存する。
         function persistTargetWeight() {
             const value = targetWeightInput.value.trim();
             if (value) {
@@ -509,11 +512,13 @@
             }
         }
 
+        // 連続入力中は少し待ってから保存する。
         function scheduleTargetWeightSave() {
             window.clearTimeout(targetWeightSaveTimer);
             targetWeightSaveTimer = window.setTimeout(persistTargetWeight, 250);
         }
 
+        // グラフの縦軸範囲を決めるため最小値と最大値を求める。
         function getMetricBounds(values, targetValue = null) {
             const filtered = values.filter((value) => value !== null);
             if (targetValue !== null) {
@@ -528,18 +533,7 @@
             return { min: Math.max(0, min - pad), max: max + pad };
         }
 
-        function buildLinePath(points, metric, bounds, dims) {
-            const usableWidth = dims.width - dims.left - dims.right;
-            const usableHeight = dims.height - dims.top - dims.bottom;
-            const validPoints = points.filter((point) => point[metric] !== null);
-            return validPoints.map((point, index) => {
-                const x = dims.left + ((point.day - 1) / Math.max(points.length - 1, 1)) * usableWidth;
-                const ratio = (point[metric] - bounds.min) / Math.max(bounds.max - bounds.min, 0.0001);
-                const y = dims.height - dims.bottom - ratio * usableHeight;
-                return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-            }).join(" ");
-        }
-
+        // 左右どちらの軸でも使えるよう、任意の範囲で折れ線 path を作る。
         function buildScaledPath(points, metric, bounds, dims) {
             const usableWidth = dims.width - dims.left - dims.right;
             const usableHeight = dims.height - dims.top - dims.bottom;
@@ -552,6 +546,7 @@
             }).join(" ");
         }
 
+        // 体重と内臓脂肪を 1 枚の複合グラフとして描画する。
         function renderCombinedChart(targetValue = null) {
             const svg = document.getElementById("combined-chart");
             const dims = { width: 1280, height: 420, left: 72, right: 72, top: 24, bottom: 48 };
@@ -613,6 +608,7 @@
             svg.innerHTML = html;
         }
 
+        // 現在の目標体重を反映して複合グラフを描き直す。
         function renderAllCharts() {
             const targetValue = targetWeightInput.value ? Number.parseFloat(targetWeightInput.value) : null;
             renderCombinedChart(Number.isNaN(targetValue) ? null : targetValue);

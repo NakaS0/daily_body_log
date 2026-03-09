@@ -1,3 +1,5 @@
+"""ダッシュボード画面、分析画面、保存 API をまとめたビュー定義。"""
+
 import calendar
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
@@ -37,6 +39,7 @@ WEEKDAY_LABELS = ["月", "火", "水", "木", "金", "土", "日"]
 
 
 def _build_exercise_options() -> list[str]:
+    """運動時間プルダウン用に 30 分刻みの候補文字列を作る。"""
     options = [""]
     for minutes in range(30, 301, 30):
         hours, rest = divmod(minutes, 60)
@@ -54,6 +57,7 @@ EXERCISE_OPTIONS = _build_exercise_options()
 
 
 def _parse_optional_decimal(raw_value: str, field_label: str) -> Decimal | None:
+    """空欄を許容しつつ、数値入力を Decimal に正規化する。"""
     value = raw_value.strip()
     if not value:
         return None
@@ -67,12 +71,14 @@ def _parse_optional_decimal(raw_value: str, field_label: str) -> Decimal | None:
 
 
 def _split_multi_value(raw_value: str) -> list[str]:
+    """保存済み文字列を画面側で扱いやすい単一選択リストに変換する。"""
     if not raw_value.strip():
         return []
     return [raw_value.split(MEAL_SEPARATOR)[0].strip()]
 
 
 def _join_multi_value(values: list[str]) -> str:
+    """画面から受け取った候補値のうち、有効な 1 件だけを保存形式へ戻す。"""
     for value in values:
         stripped = value.strip()
         if stripped:
@@ -81,6 +87,7 @@ def _join_multi_value(values: list[str]) -> str:
 
 
 def _replacement_count(breakfast: str, lunch: str, dinner: str) -> str:
+    """朝昼夕の組み合わせから 2 食置き換えか 3 食置き換えかを判定する。"""
     if breakfast == "活力＋VM1122" and lunch == "D24＋ジュニアバランス" and dinner == "NB":
         return "3食"
     if breakfast == "活力＋VM1122" and lunch == "D24＋推奨食事" and dinner == "NB":
@@ -89,10 +96,12 @@ def _replacement_count(breakfast: str, lunch: str, dinner: str) -> str:
 
 
 def _is_replacement_complete(breakfast: str, lunch: str, dinner: str) -> bool:
+    """達成条件を満たす 2 食または 3 食置き換えかどうかを返す。"""
     return _replacement_count(breakfast, lunch, dinner) in {"2食", "3食"}
 
 
 def _replacement_meal_count(breakfast: str, lunch: str, dinner: str) -> int:
+    """置き換え対象の食事が何食入力されているかを数える。"""
     count = 0
     if breakfast == "活力＋VM1122":
         count += 1
@@ -103,18 +112,8 @@ def _replacement_meal_count(breakfast: str, lunch: str, dinner: str) -> int:
     return count
 
 
-def _lifestyle_face(breakfast: str, lunch: str, dinner: str) -> str:
-    if not breakfast and not lunch and not dinner:
-        return "-"
-    replacement_meal_count = _replacement_meal_count(breakfast, lunch, dinner)
-    if replacement_meal_count >= 2:
-        return "😄👍"
-    if replacement_meal_count >= 1:
-        return "😐👌"
-    return "😢👎"
-
-
 def _lifestyle_tone(breakfast: str, lunch: str, dinner: str) -> str:
+    """食生活表示やカレンダー表示に使う状態名を返す。"""
     if not breakfast and not lunch and not dinner:
         return "empty"
     replacement_meal_count = _replacement_meal_count(breakfast, lunch, dinner)
@@ -126,6 +125,7 @@ def _lifestyle_tone(breakfast: str, lunch: str, dinner: str) -> str:
 
 
 def _calendar_symbol(breakfast: str, lunch: str, dinner: str) -> str:
+    """分析ページのカレンダー内に出す記号を決める。"""
     tone = _lifestyle_tone(breakfast, lunch, dinner)
     if tone == "good":
         return "◎"
@@ -137,6 +137,7 @@ def _calendar_symbol(breakfast: str, lunch: str, dinner: str) -> str:
 
 
 def _parse_exercise_minutes(exercise: str) -> int:
+    """運動時間の表示文字列を合計分へ変換して集計しやすくする。"""
     value = exercise.strip()
     if not value:
         return 0
@@ -156,6 +157,7 @@ def _parse_exercise_minutes(exercise: str) -> int:
 
 
 def _format_minutes_label(total_minutes: int) -> str:
+    """分単位の合計値を『1時間30分』のような表示文字列へ戻す。"""
     hours, minutes = divmod(total_minutes, 60)
     if hours and minutes:
         return f"{hours}時間{minutes}分"
@@ -165,6 +167,7 @@ def _format_minutes_label(total_minutes: int) -> str:
 
 
 def _resolve_month(year: int | None, month: int | None) -> tuple[int, int] | None:
+    """URL パラメータが省略された場合も含めて、表示対象の年月を確定する。"""
     today = date.today()
     display_year = year or today.year
     display_month = month or today.month
@@ -174,6 +177,7 @@ def _resolve_month(year: int | None, month: int | None) -> tuple[int, int] | Non
 
 
 def _build_month_context(display_year: int, display_month: int) -> dict[str, object]:
+    """月次画面の描画に必要な一覧データと集計値をまとめて作る。"""
     today = date.today()
     first_day = date(display_year, display_month, 1)
     days_in_month = calendar.monthrange(display_year, display_month)[1]
@@ -194,6 +198,8 @@ def _build_month_context(display_year: int, display_month: int) -> dict[str, obj
     monthly_total_exercise_minutes = 0
     chart_points: list[dict[str, object]] = []
 
+    # 各日付について、表表示・カレンダー表示・グラフ表示で共通利用する
+    # 中間データを 1 回のループでまとめて作成する。
     for day_number in range(1, days_in_month + 1):
         current_day = date(display_year, display_month, day_number)
         record = month_records.get(current_day)
@@ -241,7 +247,6 @@ def _build_month_context(display_year: int, display_month: int) -> dict[str, obj
             "visceral_placeholder": "" if visceral_value else previous_visceral,
             "replacement_count": replacement_count,
             "replacement_complete": replacement_complete,
-            "lifestyle_face": _lifestyle_face(breakfast_value, lunch_value, dinner_value),
             "lifestyle_tone": _lifestyle_tone(breakfast_value, lunch_value, dinner_value),
         }
         month_days.append(day_payload)
@@ -266,6 +271,7 @@ def _build_month_context(display_year: int, display_month: int) -> dict[str, obj
     prev_year, prev_month = (display_year - 1, 12) if display_month == 1 else (display_year, display_month - 1)
     next_year, next_month = (display_year + 1, 1) if display_month == 12 else (display_year, display_month + 1)
 
+    # カレンダー表示用に、前月末・翌月初を含む週単位の配列を組み立てる。
     month_calendar = calendar.Calendar(firstweekday=0).monthdatescalendar(display_year, display_month)
     calendar_weeks = []
     for week in month_calendar:
@@ -331,6 +337,7 @@ def _build_month_context(display_year: int, display_month: int) -> dict[str, obj
 
 
 def dashboard(request: HttpRequest, year: int | None = None, month: int | None = None) -> HttpResponse:
+    """記録ページを表示する。"""
     resolved = _resolve_month(year, month)
     if resolved is None:
         return redirect("bodylog:dashboard")
@@ -340,6 +347,7 @@ def dashboard(request: HttpRequest, year: int | None = None, month: int | None =
 
 
 def analysis(request: HttpRequest, year: int | None = None, month: int | None = None) -> HttpResponse:
+    """分析ページを表示する。"""
     resolved = _resolve_month(year, month)
     if resolved is None:
         return redirect("bodylog:analysis")
@@ -350,6 +358,7 @@ def analysis(request: HttpRequest, year: int | None = None, month: int | None = 
 
 @require_POST
 def save_record(request: HttpRequest, date_value: str) -> JsonResponse:
+    """1 日分の入力値を保存し、保存結果を JSON で返す。"""
     try:
         log_date = datetime.strptime(date_value, "%Y-%m-%d").date()
         breakfast = _join_multi_value(_split_multi_value(request.POST.get("breakfast", "")))
@@ -365,6 +374,8 @@ def save_record(request: HttpRequest, date_value: str) -> JsonResponse:
     except ValueError as exc:
         return JsonResponse({"ok": False, "error": str(exc)}, status=400)
 
+    # 何も入力されていない日付はレコードを削除し、
+    # 何か入っている場合だけ保存対象として扱う。
     replacement_achieved = _is_replacement_complete(breakfast, lunch, dinner)
     has_any = any(
         [
@@ -405,6 +416,7 @@ def save_record(request: HttpRequest, date_value: str) -> JsonResponse:
 
 @require_POST
 def import_omron_csv(request: HttpRequest) -> HttpResponse:
+    """画面からアップロードされた OMRON CSV を取り込む。"""
     uploaded_file = request.FILES.get("csv_file")
     if uploaded_file is None:
         messages.error(request, "CSVファイルを選択してください。")

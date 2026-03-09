@@ -1,3 +1,5 @@
+"""Daily Body Log プロジェクト全体の Django 設定をまとめるファイル。"""
+
 from pathlib import Path
 
 

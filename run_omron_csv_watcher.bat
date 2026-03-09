@@ -1,4 +1,5 @@
 @echo off
+rem OMRON CSV 監視コマンドを起動するためのバッチファイル
 cd /d %~dp0
 
 where py >nul 2>nul

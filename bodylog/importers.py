@@ -1,3 +1,5 @@
+"""OMRON CSV を解析し、DailyRecord に取り込むための補助関数群。"""
+
 import csv
 import shutil
 from datetime import datetime
@@ -46,10 +48,12 @@ DATE_FORMATS = [
 
 
 def _normalize_header(value: str) -> str:
+    """ヘッダー名を比較しやすいように小文字・空白整形する。"""
     return " ".join(value.strip().lower().replace("_", " ").split())
 
 
 def _find_column(fieldnames: list[str], candidates: list[str]) -> str | None:
+    """候補名の中から、CSV に存在する列名をできるだけ柔軟に探す。"""
     normalized_fields = {_normalize_header(name): name for name in fieldnames}
     for candidate in candidates:
         match = normalized_fields.get(_normalize_header(candidate))
@@ -64,6 +68,7 @@ def _find_column(fieldnames: list[str], candidates: list[str]) -> str | None:
 
 
 def _parse_date(raw_value: str) -> datetime.date:
+    """複数の書式に対応しながら日付文字列を date に変換する。"""
     value = raw_value.strip()
     for fmt in DATE_FORMATS:
         try:
@@ -74,6 +79,7 @@ def _parse_date(raw_value: str) -> datetime.date:
 
 
 def _parse_decimal(raw_value: str) -> Decimal | None:
+    """CSV 内の数値文字列を Decimal へ変換し、空欄は None にする。"""
     value = raw_value.strip()
     if not value:
         return None
@@ -88,6 +94,7 @@ def _parse_decimal(raw_value: str) -> Decimal | None:
 
 
 def _open_csv_text(path: Path) -> TextIO:
+    """文字コードの違いを考慮して CSV ファイルを開く。"""
     try:
         return path.open("r", newline="", encoding="utf-8-sig")
     except UnicodeDecodeError:
@@ -95,6 +102,7 @@ def _open_csv_text(path: Path) -> TextIO:
 
 
 def _decode_uploaded_csv(uploaded_file: BinaryIO) -> str:
+    """アップロード済みバイナリを文字列へ復号し、扱える CSV テキストにする。"""
     raw = uploaded_file.read()
     for encoding in ("utf-8-sig", "cp932", "utf-8"):
         try:
@@ -105,6 +113,7 @@ def _decode_uploaded_csv(uploaded_file: BinaryIO) -> str:
 
 
 def _import_reader(reader: csv.DictReader) -> int:
+    """DictReader から日付・体重・内臓脂肪を読み取り DB へ保存する。"""
     fieldnames = reader.fieldnames or []
     if not fieldnames:
         raise ValueError("CSV にヘッダー行がありません")
@@ -119,6 +128,7 @@ def _import_reader(reader: csv.DictReader) -> int:
         raise ValueError("体重列または内臓脂肪列を特定できませんでした")
 
     imported_count = 0
+    # 1 行ずつ読み込み、値がある日だけ DailyRecord を更新する。
     for row in reader:
         raw_date = (row.get(date_column) or "").strip()
         if not raw_date:
@@ -143,6 +153,7 @@ def _import_reader(reader: csv.DictReader) -> int:
 
 
 def import_csv_records(csv_path: Path) -> int:
+    """ローカルの CSV ファイルを読み込んで件数を返す。"""
     if not csv_path.exists():
         return 0
     with _open_csv_text(csv_path) as handle:
@@ -151,12 +162,14 @@ def import_csv_records(csv_path: Path) -> int:
 
 
 def import_uploaded_csv(uploaded_file: BinaryIO) -> int:
+    """Web 画面から受け取った CSV を読み込んで件数を返す。"""
     decoded = _decode_uploaded_csv(uploaded_file)
     reader = csv.DictReader(decoded.splitlines())
     return _import_reader(reader)
 
 
 def move_processed_file(source_path: Path, target_dir: Path) -> Path:
+    """処理済み CSV を重複しない名前へ変えてアーカイブ先へ移動する。"""
     target_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     destination = target_dir / f"{source_path.stem}_{timestamp}{source_path.suffix}"

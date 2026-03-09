@@ -1,3 +1,5 @@
+"""bodylog アプリ内の画面 URL と API URL を定義するファイル。"""
+
 from django.urls import path
 
 from . import views

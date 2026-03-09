@@ -1,4 +1,5 @@
 @echo off
+rem Django 開発サーバーを起動し、ブラウザを開くためのバッチファイル
 cd /d %~dp0
 
 set URL=http://127.0.0.1:8000/

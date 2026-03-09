@@ -1,7 +1,11 @@
+"""DailyRecord モデルを新規作成する初回 migration。"""
+
 from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """テーブル作成に必要な操作を定義する。"""
+
     initial = True
 
     dependencies = []

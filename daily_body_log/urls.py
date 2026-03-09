@@ -1,3 +1,5 @@
+"""管理画面と bodylog アプリへ URL を振り分ける親ルーター。"""
+
 from django.contrib import admin
 from django.urls import include, path
 
