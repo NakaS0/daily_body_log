@@ -1,24 +1,69 @@
-﻿# Daily Body Log
+# Daily Body Log
 
-朝・昼・晩に食べたものと、その日の体重・内臓脂肪値を記録するPythonアプリです。
+朝・昼・晩に食べたもの、体重、内臓脂肪、運動、履行を日単位で記録するアプリです。
 
-- CLI版: `app.py`
-- GUI版: `gui_app.py`（Tkinter / ダッシュボード風レイアウト）
+このリポジトリには次の 3 実装があります。
 
-## GUI版の仕様
+- Django 版: `manage.py` + `daily_body_log/` + `bodylog/`
+- CLI 版: `app.py`
+- Tkinter GUI 版: `gui_app.py`
 
-- 勤怠ダッシュボード風の画面構成（左サイドバー + 右メイン）
-- 月単位表示（1日〜月末まで全行を表示、未入力日も空欄で表示）
-- `<< 前月` / `翌月 >>` / `当月` で月送り
-- 列: 日付 / 朝食 / 昼食 / 夕食 / 体重 / 内臓脂肪 / 運動 / 履行
-- 各セルは直接入力可能（マスごとの区切り線あり）
-- 入力確定（Enter またはフォーカス移動）時に、その日の行を自動保存
+## Django 版の概要
 
-## GUI版の起動（バッチ実行）
+- SQLite を使った永続化
+- 月単位ダッシュボード表示
+- `<< 前月` / `翌月 >>` / `当月` の月送り
+- 各日の行をブラウザ上で直接編集
+- 入力変更またはフォーカスアウト時に自動保存
+- すべて空欄にするとその日の記録を削除
 
-`run_daily_body_log.bat` を実行するとGUIが起動します。
+## Django 版の起動手順
 
-## CLI版の使い方
+まず Django をインストールします。
+
+```bash
+pip install -r requirements.txt
+```
+
+初回のみマイグレーションを適用します。
+
+```bash
+python manage.py migrate
+```
+
+必要なら既存 CSV を取り込みます。
+
+```bash
+python manage.py import_csv_records
+```
+
+開発サーバーを起動します。
+
+```bash
+python manage.py runserver
+```
+
+ブラウザで `http://127.0.0.1:8000/` を開くと、月次ダッシュボードが表示されます。
+
+## OMRON CSV の自動取り込み
+
+監視フォルダに CSV を置くと自動で取り込めます。
+
+```bash
+python manage.py watch_omron_csv
+```
+
+または `run_omron_csv_watcher.bat` を実行してください。
+
+使用フォルダ:
+
+- 監視先: `data/omron_inbox`
+- 取り込み成功後: `data/omron_processed`
+- 取り込み失敗後: `data/omron_failed`
+
+スマートフォンから送った CSV を `data/omron_inbox` に置くと、自動で DB に反映されます。
+
+## CLI 版の使い方
 
 ```bash
 python app.py add --date 2026-03-08 --breakfast "ヨーグルト" --lunch "そば" --dinner "鍋" --weight 63.1 --visceral-fat 7.4 --exercise "散歩30分" --execution "計画どおり"
@@ -26,7 +71,12 @@ python app.py list
 python app.py today
 ```
 
+## Tkinter GUI 版
+
+`run_daily_body_log.bat` を実行すると既存 GUI 版を起動できます。
+
 ## データ保存先
 
-- 実データ: `data/records.csv`
-- `data/`配下は`.gitignore`で除外済みです（`data/.gitkeep`のみ追跡）。
+- Django 版: `db.sqlite3`
+- 既存 CLI / Tkinter 版: `data/records.csv`
+- `data/` 配下は `.gitignore` で除外済みです（`data/.gitkeep` のみ追跡）
