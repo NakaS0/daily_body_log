@@ -6,12 +6,12 @@ from bodylog.importers import import_csv_records
 
 
 class Command(BaseCommand):
-    help = "CSV の既存記録を Django の SQLite DB に取り込みます"
+    help = "指定した CSV を Django の SQLite DB に取り込みます"
 
     def add_arguments(self, parser) -> None:
         parser.add_argument(
             "--path",
-            default="data/records.csv",
+            required=True,
             help="取り込む CSV ファイルのパス",
         )
 

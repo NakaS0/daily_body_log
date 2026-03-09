@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -6,556 +7,992 @@
     <title>Daily Body Log</title>
     <style>
         :root {
-            --bg: #f3f5ef;
+            --bg: #f4f7ef;
             --panel: #ffffff;
-            --sidebar: #20352f;
-            --accent: #96c84f;
-            --accent-dark: #6d9737;
-            --line: #dbe3d8;
-            --text: #223129;
-            --muted: #607068;
-            --saved: #2f7f42;
-            --error: #ba3d2f;
+            --line: #d6decf;
+            --text: #18332a;
+            --muted: #5d7268;
+            --accent: #76ad2e;
+            --danger: #c54a45;
+            --shadow: 0 18px 45px rgba(33, 56, 40, 0.12);
+            --radius: 24px;
         }
+
         * { box-sizing: border-box; }
+
         body {
             margin: 0;
-            background:
-                radial-gradient(circle at top right, rgba(150, 200, 79, 0.18), transparent 28%),
-                linear-gradient(180deg, #f9fbf6 0%, var(--bg) 100%);
+            background: linear-gradient(180deg, #eef4e5 0%, #f8faf5 100%);
             color: var(--text);
             font-family: "Yu Gothic UI", "Hiragino Sans", sans-serif;
         }
+
+        button, input, select { font: inherit; }
+
         .layout {
-            display: grid;
-            grid-template-columns: 250px 1fr;
-            min-height: 100vh;
+            max-width: 1820px;
+            margin: 0 auto;
+            padding: 28px 32px 40px;
         }
-        .sidebar {
-            background: linear-gradient(180deg, #243b35 0%, var(--sidebar) 100%);
-            color: #f4fff1;
-            padding: 28px 20px;
-        }
-        .sidebar h1 {
-            margin: 0 0 22px;
-            font-size: 2rem;
-            letter-spacing: 0.04em;
-        }
-        .pill {
-            display: none;
-        }
-        .sidebar p {
-            margin: 0;
-            line-height: 1.7;
-            color: #c8d8cf;
-        }
-        .content {
-            padding: 18px 28px 18px 18px;
-        }
-        .topbar, .hero, .panel {
+
+        .topbar, .hero, .quick-card, .table-card, .chat-panel, .graph-modal {
             background: var(--panel);
-            border: 1px solid rgba(42, 65, 52, 0.08);
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(35, 50, 41, 0.06);
+            border: 1px solid rgba(118, 173, 46, 0.14);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
         }
+
         .topbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 12px;
-            padding: 14px 16px;
-            margin-bottom: 14px;
-        }
-        .hero {
-            background: linear-gradient(135deg, #8fc947 0%, #5f8f2a 100%);
-            color: white;
-            padding: 22px 24px;
-            margin-bottom: 14px;
-        }
-        .hero small {
-            display: block;
-            font-family: Consolas, monospace;
-            letter-spacing: 0.16em;
-            margin-bottom: 8px;
-            opacity: 0.86;
-        }
-        .hero strong {
-            font-size: 2rem;
-        }
-        .toolbar {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .import-form {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .toolbar a {
-            text-decoration: none;
-            color: var(--text);
-            background: #f7faf5;
-            border: 1px solid var(--line);
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-weight: 700;
-        }
-        .import-form button {
-            border: 1px solid var(--line);
-            background: #f7faf5;
-            color: var(--text);
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-        .import-form input[type="file"] {
-            width: auto;
-            max-width: 240px;
-            padding: 8px;
-        }
-        .status {
-            font-size: 0.95rem;
-            color: var(--muted);
-            min-height: 1.5em;
-        }
-        .status.error { color: var(--error); }
-        .status.saved { color: var(--saved); }
-        .panel { overflow: hidden; }
-        .table-wrap { overflow: auto; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 1140px;
-        }
-        th, td {
-            border-bottom: 1px solid var(--line);
-            padding: 10px;
-            text-align: left;
-            vertical-align: top;
-        }
-        th {
+            gap: 16px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
             position: sticky;
-            top: 0;
-            background: #f7faf5;
-            z-index: 2;
-            font-size: 0.92rem;
+            top: 12px;
+            z-index: 30;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.9);
         }
-        td:first-child {
-            white-space: nowrap;
-            background: #fbfdf9;
-            font-weight: 700;
-        }
-        input,
-        select,
-        .multi-trigger {
-            width: 100%;
-            border: 1px solid #cfd8cd;
-            border-radius: 10px;
-            padding: 10px 12px;
-            font: inherit;
-            background: white;
-            color: var(--text);
-        }
-        input::placeholder {
-            color: #9aa79e;
-        }
-        input:focus,
-        select:focus,
-        .multi-trigger:focus {
-            outline: none;
-            border-color: var(--accent-dark);
-            box-shadow: 0 0 0 4px rgba(150, 200, 79, 0.15);
-        }
-        .multi-select {
-            position: relative;
-            min-width: 180px;
-        }
-        .multi-trigger {
-            text-align: left;
-            cursor: pointer;
-        }
-        .multi-trigger::after {
-            content: "▾";
-            float: right;
-            color: var(--muted);
-        }
-        .multi-menu {
-            display: none;
-            position: absolute;
-            top: calc(100% + 6px);
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid var(--line);
-            border-radius: 14px;
-            box-shadow: 0 16px 36px rgba(30, 47, 39, 0.15);
-            padding: 8px;
-            z-index: 4;
-        }
-        .multi-select.open .multi-menu {
-            display: block;
-        }
-        .multi-option {
+
+        .topbar-group, .import-form, .quick-title-group, .hero-meta, .graph-tools {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 6px 8px;
-            border-radius: 10px;
+            gap: 10px;
+            flex-wrap: wrap;
         }
-        .multi-option:hover {
-            background: #f4f9ee;
+
+        .nav-button, .graph-button, .count-button, .chat-submit, .suggestion-button {
+            border: 0;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: transform 0.14s ease, opacity 0.14s ease;
         }
-        .multi-option input {
-            width: auto;
+
+        .nav-button, .graph-button {
+            padding: 10px 14px;
+            background: #f0f4ea;
+            color: var(--text);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .analysis-link {
+            background: #163a2f;
+            color: #fff;
+        }
+
+        .graph-button, .chat-submit, .fab {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .nav-button:hover, .graph-button:hover, .count-button:hover, .chat-submit:hover, .suggestion-button:hover, .fab:hover {
+            transform: translateY(-1px);
+            opacity: 0.94;
+        }
+
+        .hero {
+            margin-bottom: 16px;
+            padding: 22px 24px;
+            background: linear-gradient(135deg, #7db72e 0%, #659e25 100%);
+            color: #fff;
+        }
+
+        .hero-kicker {
+            margin: 0 0 8px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.3em;
+        }
+
+        .hero-title-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .hero-title {
             margin: 0;
-            box-shadow: none;
+            font-size: 54px;
+            font-weight: 800;
+            line-height: 1.05;
         }
-        @media (max-width: 900px) {
-            .layout { grid-template-columns: 1fr; }
-            .sidebar { padding-bottom: 18px; }
+
+        .hero-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: #d8ecff;
+            color: #1f557a;
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .hero-pill-label {
+            font-size: 13px;
+            font-weight: 700;
+            opacity: 0.88;
+        }
+
+        .hero-pill-value {
+            font-size: 24px;
+            font-weight: 900;
+            line-height: 1;
+            color: #0f4468;
+        }
+
+        .quick-card, .table-card {
+            padding: 18px;
+            margin-bottom: 16px;
+        }
+
+        .quick-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .quick-date {
+            font-size: 24px;
+            font-weight: 800;
+        }
+
+        .count-button {
+            padding: 8px 12px;
+            background: #edf4e4;
+            color: var(--text);
+            font-weight: 800;
+        }
+
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .field-block {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .field-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
+        }
+
+        .field-input, .field-select, .table-select, .table-input, .chat-input {
+            width: 100%;
+            min-height: 44px;
+            padding: 10px 12px;
+            border: 1px solid #c9d4c0;
+            border-radius: 14px;
+            background: #fff;
+            color: var(--text);
+        }
+
+        .field-input::placeholder, .table-input::placeholder { color: #93a39b; }
+
+        .metric-input { max-width: 112px; }
+
+        .message {
+            padding: 11px 14px;
+            border-radius: 14px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .message-success { background: #e8f5d8; color: #3a6c06; }
+        .message-error { background: #fde8e6; color: #8c2e2a; }
+
+        .table-scroll { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 1560px; }
+        th, td { padding: 10px 8px; border-bottom: 1px solid #e2eadb; text-align: left; vertical-align: middle; }
+        th { font-size: 14px; color: var(--muted); white-space: nowrap; }
+        th.achievement-header { transform: translateX(-10px); }
+        td.date-cell { white-space: nowrap; font-weight: 700; }
+        .count-cell { min-width: 138px; }
+        .count-tools { display: flex; align-items: center; gap: 8px; }
+        .achievement-mark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 58px;
+            min-height: 58px;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            text-align: center;
+            font-size: 24px;
+            line-height: 1;
+            transform: translateX(-11px);
+        }
+
+        .achievement-mark img {
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .achievement-mark.tone-empty {
+            min-width: 24px;
+            padding: 0;
+            background: transparent;
+        }
+        .table-input.metric-input { width: 92px; }
+        .status-bar { min-height: 22px; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: var(--muted); }
+        .status-bar.error { color: var(--danger); }
+
+        .meal-value-活力＋VM1122 { color: #006a8e; font-weight: 800; }
+        .meal-value-D24＋推奨食事 { color: #2f8f35; font-weight: 800; }
+        .meal-value-D24＋ジュニアバランス { color: #d17700; font-weight: 800; }
+        .meal-value-NB { color: #6e4cc9; font-weight: 800; }
+        .meal-value-外食 { color: #a95516; font-weight: 800; }
+        .meal-value-サボリ { color: #c33b37; font-weight: 800; }
+        .meal-value-不明 { color: #717171; font-weight: 800; }
+
+        .fab {
+            position: fixed;
+            right: 28px;
+            bottom: 28px;
+            width: 62px;
+            height: 62px;
+            border: 0;
+            border-radius: 50%;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 18px 30px rgba(76, 112, 29, 0.28);
+        }
+
+        .chat-panel {
+            position: fixed;
+            right: 28px;
+            bottom: 104px;
+            width: min(380px, calc(100vw - 32px));
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-panel.is-open { display: flex; }
+        .chat-header { padding: 16px 18px; background: linear-gradient(135deg, #163a2f 0%, #2d5d46 100%); color: #fff; font-weight: 800; }
+        .chat-messages { max-height: 340px; overflow-y: auto; padding: 14px; background: #fbfcf8; }
+        .chat-row { margin-bottom: 10px; }
+        .chat-bubble { display: inline-block; max-width: 100%; padding: 10px 12px; border-radius: 14px; line-height: 1.5; }
+        .chat-bubble.bot { background: #e8f2dd; }
+        .chat-bubble.user { background: #eef1ff; }
+        .suggestion-list { padding: 0 14px 12px; display: grid; gap: 8px; background: #fbfcf8; }
+        .suggestion-button { width: 100%; padding: 10px 12px; text-align: left; background: #fff; border: 1px solid #d8e3cf; color: var(--text); }
+        .chat-form { display: flex; gap: 8px; padding: 14px; border-top: 1px solid #e0e8d7; background: #fff; }
+
+        .graph-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(20, 31, 24, 0.54);
+            z-index: 40;
+        }
+
+        .graph-modal-backdrop.is-open { display: flex; }
+        .graph-modal { width: min(980px, 100%); padding: 22px; }
+        .graph-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+        .graph-title { margin: 0; font-size: 28px; font-weight: 800; }
+        .graph-close { border: 0; background: #eef4ea; border-radius: 12px; width: 42px; height: 42px; cursor: pointer; font-size: 20px; }
+        .chart-grid { display: grid; gap: 16px; }
+        .chart-card { background: #f9fbf6; border: 1px solid #e2eadb; border-radius: 20px; padding: 16px; }
+        .chart-card h3 { margin: 0 0 10px; font-size: 18px; }
+        .chart-svg { width: 100%; height: 280px; display: block; background: #fff; border: 1px solid #dce6d3; border-radius: 16px; }
+        .chart-caption { margin-top: 8px; font-size: 13px; color: var(--muted); }
+
+        @media (max-width: 1220px) {
+            .quick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 820px) {
+            .layout { padding: 18px 14px 28px; }
+            .hero-title { font-size: 38px; }
+            .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
     </style>
 </head>
 <body>
+    {{ chart_points|json_script:"chart-points-data" }}
     <div class="layout">
-        <aside class="sidebar">
-            <h1>BodyLog</h1>
-            <p>食事、体重、内臓脂肪、運動時間、履行を月単位で管理できます。</p>
-        </aside>
-        <main class="content">
-            <div id="csrf-token" style="display:none;">{% csrf_token %}</div>
-            <section class="topbar">
-                <div class="toolbar">
-                    <a href="{% url 'bodylog:dashboard_month' prev_year prev_month %}">&lt;&lt; 前月</a>
-                    <a href="{% url 'bodylog:dashboard' %}">当月</a>
-                    <a href="{% url 'bodylog:dashboard_month' next_year next_month %}">翌月 &gt;&gt;</a>
-                </div>
-                <form class="import-form" action="{% url 'bodylog:import_omron_csv' %}" method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <input type="file" name="csv_file" accept=".csv,text/csv">
-                    <button type="submit">OMRON CSV取込</button>
-                </form>
-            </section>
-            <div id="global-status" class="status">
-                {% if messages %}
-                    {% for message in messages %}
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="message {% if message.tags == 'error' %}message-error{% else %}message-success{% endif %}">
                         {{ message }}
-                    {% endfor %}
-                {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="topbar">
+            <div class="topbar-group">
+                <a class="nav-button" href="{% url 'bodylog:dashboard_month' prev_year prev_month %}">&lt;&lt; 前月</a>
+                <a class="nav-button" href="{% url 'bodylog:dashboard' %}">当月</a>
+                <a class="nav-button" href="{% url 'bodylog:dashboard_month' next_year next_month %}">翌月 &gt;&gt;</a>
+                <a class="nav-button analysis-link" href="{% url 'bodylog:analysis_month' display_year display_month %}">分析ページ</a>
+            </div>
+            <form class="import-form" method="post" action="{% url 'bodylog:import_omron_csv' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="file" name="csv_file" accept=".csv">
+                <button type="submit" class="nav-button">OMRON CSV取込</button>
+            </form>
+        </div>
+
+        <section class="hero">
+            <p class="hero-kicker">DAILY BODY RECORD</p>
+            <div class="hero-title-row">
+                <h1 class="hero-title">{{ month_label }}</h1>
+                <span class="hero-pill">
+                    <span class="hero-pill-label">月間運動時間</span>
+                    <span class="hero-pill-value">{{ monthly_total_exercise_label }}</span>
+                </span>
+            </div>
+        </section>
+
+        <section class="quick-card entry-scope" data-scope="today-card" data-date="{{ today|date:'Y-m-d' }}">
+            <div class="quick-header">
+                <div class="quick-title-group">
+                    <div class="quick-date">{{ today_label }}</div>
+                    <button type="button" class="count-button" data-set-count="2">2食</button>
+                    <button type="button" class="count-button" data-set-count="3">3食</button>
+                </div>
+                <div class="status-bar" id="global-status"></div>
             </div>
 
-            <section class="hero">
-                <small>DAILY BODY RECORD</small>
-                <strong>{{ month_label }}</strong>
-            </section>
+            <div class="quick-grid">
+                <label class="field-block">
+                    <span class="field-label">朝食</span>
+                    <select class="field-select meal-select" name="breakfast" data-field="breakfast">
+                        <option value="">---</option>
+                        {% for option in breakfast_options %}
+                            <option value="{{ option }}" {% if option == today_breakfast_value %}selected{% endif %}>{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="field-block">
+                    <span class="field-label">昼食</span>
+                    <select class="field-select meal-select" name="lunch" data-field="lunch">
+                        <option value="">---</option>
+                        {% for option in lunch_options %}
+                            <option value="{{ option }}" {% if option == today_lunch_value %}selected{% endif %}>{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="field-block">
+                    <span class="field-label">夕食</span>
+                    <select class="field-select meal-select" name="dinner" data-field="dinner">
+                        <option value="">---</option>
+                        {% for option in dinner_options %}
+                            <option value="{{ option }}" {% if option == today_dinner_value %}selected{% endif %}>{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="field-block">
+                    <span class="field-label">体重</span>
+                    <input class="field-input metric-input" type="number" step="0.1" min="0" name="weight_kg" data-field="weight_kg" value="{{ today_weight_value }}" placeholder="{{ today_weight_placeholder }}">
+                </label>
+                <label class="field-block">
+                    <span class="field-label">内臓脂肪</span>
+                    <input class="field-input metric-input" type="number" step="0.1" min="0" name="visceral_fat_level" data-field="visceral_fat_level" value="{{ today_visceral_value }}" placeholder="{{ today_visceral_placeholder }}">
+                </label>
+                <label class="field-block">
+                    <span class="field-label">運動時間</span>
+                    <select class="field-select" name="exercise" data-field="exercise">
+                        <option value="">---</option>
+                        {% for option in exercise_options %}
+                            {% if option %}
+                                <option value="{{ option }}" {% if today_record and option == today_record.exercise %}selected{% endif %}>{{ option }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="field-block" style="grid-column: span 2;">
+                    <span class="field-label">備考</span>
+                    <input class="field-input" type="text" name="execution" data-field="execution" value="{% if today_record %}{{ today_record.execution }}{% endif %}">
+                </label>
+            </div>
+        </section>
 
-            <section class="panel">
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>日付</th>
-                                <th>朝食</th>
-                                <th>昼食</th>
-                                <th>夕食</th>
-                                <th>体重</th>
-                                <th>内臓脂肪</th>
-                                <th>運動時間</th>
-                                <th>備考</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in month_days %}
-                            <tr data-date="{{ item.date|date:'Y-m-d' }}">
-                                <td>{{ item.date|date:"Y-m-d" }}</td>
-                                <td>
-                                    <div class="multi-select" data-field-name="breakfast">
-                                        <input type="hidden" name="breakfast" value="{{ item.breakfast_value }}">
-                                        <button type="button" class="multi-trigger nav-field" data-col="0">
-                                            {{ item.breakfast_value|default:"選択してください" }}
-                                        </button>
-                                        <div class="multi-menu">
-                                            {% for option in breakfast_options %}
-                                            <label class="multi-option">
-                                                <input type="checkbox" value="{{ option }}" {% if option in item.breakfast_selected %}checked{% endif %}>
-                                                <span>{{ option }}</span>
-                                            </label>
-                                            {% endfor %}
-                                        </div>
+        <section class="table-card">
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>日付</th>
+                            <th>置き換え回数</th>
+                            <th class="achievement-header">食生活</th>
+                            <th>朝食</th>
+                            <th>昼食</th>
+                            <th>夕食</th>
+                            <th>体重</th>
+                            <th>内臓脂肪</th>
+                            <th>運動時間</th>
+                            <th>備考</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day in month_days %}
+                            <tr class="entry-scope table-row" data-scope="month-row" data-date="{{ day.date|date:'Y-m-d' }}">
+                                <td class="date-cell">{{ day.date_label }}</td>
+                                <td class="count-cell">
+                                    <div class="count-tools">
+                                        <button type="button" class="count-button" data-set-count="2">2食</button>
+                                        <button type="button" class="count-button" data-set-count="3">3食</button>
                                     </div>
                                 </td>
                                 <td>
-                                    <div class="multi-select" data-field-name="lunch">
-                                        <input type="hidden" name="lunch" value="{{ item.lunch_value }}">
-                                        <button type="button" class="multi-trigger nav-field" data-col="1">
-                                            {{ item.lunch_value|default:"選択してください" }}
-                                        </button>
-                                        <div class="multi-menu">
-                                            {% for option in lunch_options %}
-                                            <label class="multi-option">
-                                                <input type="checkbox" value="{{ option }}" {% if option in item.lunch_selected %}checked{% endif %}>
-                                                <span>{{ option }}</span>
-                                            </label>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
+                                    <span class="achievement-mark tone-{{ day.lifestyle_tone }}" data-achievement-mark data-tone="{{ day.lifestyle_tone }}">
+                                        {% if day.lifestyle_tone == "good" %}
+                                            <img src="{% static 'bodylog/good.png' %}" alt="良い">
+                                        {% elif day.lifestyle_tone == "middle" %}
+                                            <img src="{% static 'bodylog/middle.png' %}" alt="まあまあ">
+                                        {% elif day.lifestyle_tone == "bad" %}
+                                            <img src="{% static 'bodylog/bad.png' %}" alt="悪い">
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </span>
                                 </td>
                                 <td>
-                                    <div class="multi-select" data-field-name="dinner">
-                                        <input type="hidden" name="dinner" value="{{ item.dinner_value }}">
-                                        <button type="button" class="multi-trigger nav-field" data-col="2">
-                                            {{ item.dinner_value|default:"選択してください" }}
-                                        </button>
-                                        <div class="multi-menu">
-                                            {% for option in dinner_options %}
-                                            <label class="multi-option">
-                                                <input type="checkbox" value="{{ option }}" {% if option in item.dinner_selected %}checked{% endif %}>
-                                                <span>{{ option }}</span>
-                                            </label>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <input
-                                        class="nav-field"
-                                        data-col="3"
-                                        type="number"
-                                        step="0.1"
-                                        min="0"
-                                        name="weight_kg"
-                                        inputmode="decimal"
-                                        value="{{ item.weight_value }}"
-                                        placeholder="{{ item.weight_placeholder }}"
-                                    >
-                                </td>
-                                <td>
-                                    <input
-                                        class="nav-field"
-                                        data-col="4"
-                                        type="number"
-                                        step="0.1"
-                                        min="0"
-                                        name="visceral_fat_level"
-                                        inputmode="decimal"
-                                        value="{{ item.visceral_value }}"
-                                        placeholder="{{ item.visceral_placeholder }}"
-                                    >
-                                </td>
-                                <td>
-                                    <select class="nav-field" data-col="5" name="exercise">
-                                        {% for option in exercise_options %}
-                                        <option value="{{ option }}" {% if option == item.record.exercise|default:'' %}selected{% endif %}>
-                                            {% if option %}{{ option }}{% else %}選択してください{% endif %}
-                                        </option>
+                                    <select class="table-select meal-select" name="breakfast" data-field="breakfast" data-cell="1">
+                                        <option value="">---</option>
+                                        {% for option in breakfast_options %}
+                                            <option value="{{ option }}" {% if option == day.breakfast_value %}selected{% endif %}>{{ option }}</option>
                                         {% endfor %}
                                     </select>
                                 </td>
                                 <td>
-                                    <input class="nav-field" data-col="6" name="execution" value="{{ item.record.execution|default:'' }}">
+                                    <select class="table-select meal-select" name="lunch" data-field="lunch" data-cell="2">
+                                        <option value="">---</option>
+                                        {% for option in lunch_options %}
+                                            <option value="{{ option }}" {% if option == day.lunch_value %}selected{% endif %}>{{ option }}</option>
+                                        {% endfor %}
+                                    </select>
                                 </td>
+                                <td>
+                                    <select class="table-select meal-select" name="dinner" data-field="dinner" data-cell="3">
+                                        <option value="">---</option>
+                                        {% for option in dinner_options %}
+                                            <option value="{{ option }}" {% if option == day.dinner_value %}selected{% endif %}>{{ option }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td><input class="table-input metric-input" type="number" step="0.1" min="0" name="weight_kg" data-field="weight_kg" data-cell="4" value="{{ day.weight_value }}" placeholder="{{ day.weight_placeholder }}"></td>
+                                <td><input class="table-input metric-input" type="number" step="0.1" min="0" name="visceral_fat_level" data-field="visceral_fat_level" data-cell="5" value="{{ day.visceral_value }}" placeholder="{{ day.visceral_placeholder }}"></td>
+                                <td>
+                                    <select class="table-select" name="exercise" data-field="exercise" data-cell="6">
+                                        <option value="">---</option>
+                                        {% for option in exercise_options %}
+                                            {% if option %}
+                                                <option value="{{ option }}" {% if day.record and option == day.record.exercise %}selected{% endif %}>{{ option }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td><input class="table-input" type="text" name="execution" data-field="execution" data-cell="7" value="{% if day.record %}{{ day.record.execution }}{% endif %}"></td>
                             </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <button type="button" class="fab" id="chat-fab">AI</button>
+    <section class="chat-panel" id="chat-panel">
+        <div class="chat-header">AIチャットボット</div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="chat-row"><div class="chat-bubble bot">気になることを選ぶか、自由に入力してください。</div></div>
+        </div>
+        <div class="suggestion-list">
+            <button type="button" class="suggestion-button" data-suggestion="健康的な食事とは">健康的な食事とは</button>
+            <button type="button" class="suggestion-button" data-suggestion="1日どれくらい運動すればよいか">1日どれくらい運動すればよいか</button>
+            <button type="button" class="suggestion-button" data-suggestion="体重を減らすにはどうしたらよいか">体重を減らすにはどうしたらよいか</button>
+        </div>
+        <form class="chat-form" id="chat-form">
+            <input class="chat-input" id="chat-input" type="text" placeholder="質問を入力">
+            <button type="submit" class="chat-submit">送信</button>
+        </form>
+    </section>
+
+    <div class="graph-modal-backdrop" id="graph-modal-backdrop">
+        <section class="graph-modal" role="dialog" aria-modal="true" aria-labelledby="graph-title">
+            <div class="graph-header">
+                <h2 class="graph-title" id="graph-title">{{ month_label }} の推移</h2>
+                <button type="button" class="graph-close" id="close-graph-modal">×</button>
+            </div>
+            <div class="graph-tools">
+                <label class="field-block" style="max-width: 180px;">
+                    <span class="field-label">目標体重</span>
+                    <input class="field-input metric-input" type="number" step="0.1" min="0" id="target-weight-input" placeholder="例: 55.0">
+                </label>
+            </div>
+            <div class="chart-grid">
+                <article class="chart-card">
+                    <h3>体重</h3>
+                    <svg class="chart-svg" id="weight-chart" viewBox="0 0 920 280" preserveAspectRatio="none"></svg>
+                    <div class="chart-caption">青線が体重、オレンジ破線が目標体重ラインです。</div>
+                </article>
+                <article class="chart-card">
+                    <h3>内臓脂肪</h3>
+                    <svg class="chart-svg" id="visceral-chart" viewBox="0 0 920 280" preserveAspectRatio="none"></svg>
+                    <div class="chart-caption">月の推移を日付ごとに表示します。</div>
+                </article>
+            </div>
+        </section>
     </div>
     <script>
+        const csrfToken = "{{ csrf_token }}";
+        const chartPoints = JSON.parse(document.getElementById("chart-points-data").textContent);
         const globalStatus = document.getElementById("global-status");
-        const csrfToken = document.querySelector("#csrf-token input").value;
-        let statusTimer = null;
+        const graphModalBackdrop = document.getElementById("graph-modal-backdrop");
+        const openGraphModalButton = document.getElementById("open-graph-modal");
+        const closeGraphModalButton = document.getElementById("close-graph-modal");
+        const targetWeightInput = document.getElementById("target-weight-input");
+        const TARGET_WEIGHT_STORAGE_KEY = "daily_body_log_target_weight";
+        const lifestyleImageMap = {
+            good: "{% static 'bodylog/good.png' %}",
+            middle: "{% static 'bodylog/middle.png' %}",
+            bad: "{% static 'bodylog/bad.png' %}"
+        };
+        const todayDate = "{{ today|date:'Y-m-d' }}";
+        const saveTimers = new Map();
+        let targetWeightSaveTimer = null;
 
-        function showGlobalStatus(message, className) {
-            globalStatus.textContent = message;
-            globalStatus.className = "status " + className;
-            clearTimeout(statusTimer);
-            statusTimer = setTimeout(() => {
-                globalStatus.textContent = "";
-                globalStatus.className = "status";
-            }, 2600);
-        }
-
-        function getNavMatrix() {
-            return Array.from(document.querySelectorAll("tbody tr")).map((row) =>
-                Array.from(row.querySelectorAll(".nav-field"))
-            );
-        }
-
-        function adjustNumericInput(field, direction) {
-            const step = Number(field.step || "1");
-            const baseValue = field.value || field.placeholder;
-            const currentValue = Number(baseValue || "0");
-            if (Number.isNaN(currentValue)) {
-                return false;
+        function loadTargetWeight() {
+            if (!targetWeightInput) {
+                return;
             }
-            const nextValue = Math.max(0, currentValue + (step * direction));
-            field.value = nextValue.toFixed(1);
-            return true;
+            const savedValue = window.localStorage.getItem(TARGET_WEIGHT_STORAGE_KEY);
+            if (savedValue) {
+                targetWeightInput.value = savedValue;
+            }
         }
 
-        function focusRelative(currentField, rowOffset, colOffset) {
-            const matrix = getNavMatrix();
-            let rowIndex = -1;
-            let colIndex = -1;
+        function persistTargetWeight() {
+            if (!targetWeightInput) {
+                return;
+            }
+            const value = targetWeightInput.value.trim();
+            if (value) {
+                window.localStorage.setItem(TARGET_WEIGHT_STORAGE_KEY, value);
+            } else {
+                window.localStorage.removeItem(TARGET_WEIGHT_STORAGE_KEY);
+            }
+        }
 
-            matrix.some((row, rIndex) => {
-                const currentCol = row.indexOf(currentField);
-                if (currentCol >= 0) {
-                    rowIndex = rIndex;
-                    colIndex = currentCol;
-                    return true;
+        function scheduleTargetWeightSave() {
+            window.clearTimeout(targetWeightSaveTimer);
+            targetWeightSaveTimer = window.setTimeout(persistTargetWeight, 250);
+        }
+
+        function setMealSelectColor(select) {
+            Array.from(select.classList)
+                .filter((name) => name.startsWith("meal-value-"))
+                .forEach((name) => select.classList.remove(name));
+            if (select.value) {
+                select.classList.add(`meal-value-${select.value}`);
+            }
+        }
+
+        function setAllMealSelectColors(root = document) {
+            root.querySelectorAll(".meal-select").forEach(setMealSelectColor);
+        }
+
+        function computeReplacementCount(scope) {
+            const breakfast = scope.querySelector('[data-field="breakfast"]').value;
+            const lunch = scope.querySelector('[data-field="lunch"]').value;
+            const dinner = scope.querySelector('[data-field="dinner"]').value;
+            if (breakfast === "活力＋VM1122" && lunch === "D24＋ジュニアバランス" && dinner === "NB") {
+                return "3食";
+            }
+            if (breakfast === "活力＋VM1122" && lunch === "D24＋推奨食事" && dinner === "NB") {
+                return "2食";
+            }
+            return "";
+        }
+
+        function computeReplacementMealCount(scope) {
+            const breakfast = scope.querySelector('[data-field="breakfast"]').value;
+            const lunch = scope.querySelector('[data-field="lunch"]').value;
+            const dinner = scope.querySelector('[data-field="dinner"]').value;
+            let count = 0;
+            if (breakfast === "活力＋VM1122") {
+                count += 1;
+            }
+            if (lunch === "D24＋推奨食事" || lunch === "D24＋ジュニアバランス") {
+                count += 1;
+            }
+            if (dinner === "NB") {
+                count += 1;
+            }
+            return count;
+        }
+
+        function updateAchievementMark(scope) {
+            const replacementCount = computeReplacementCount(scope);
+            const replacementMealCount = computeReplacementMealCount(scope);
+            const countNode = scope.querySelector("[data-replacement-count]");
+            const markNode = scope.querySelector("[data-achievement-mark]");
+            if (countNode) {
+                countNode.textContent = replacementCount || "-";
+            }
+            if (markNode) {
+                const breakfast = scope.querySelector('[data-field="breakfast"]').value;
+                const lunch = scope.querySelector('[data-field="lunch"]').value;
+                const dinner = scope.querySelector('[data-field="dinner"]').value;
+                markNode.classList.remove("tone-good", "tone-middle", "tone-bad", "tone-empty");
+                if (!breakfast && !lunch && !dinner) {
+                    markNode.textContent = "-";
+                    markNode.classList.add("tone-empty");
+                    markNode.dataset.tone = "empty";
+                } else if (replacementMealCount >= 2) {
+                    markNode.innerHTML = `<img src="${lifestyleImageMap.good}" alt="良い">`;
+                    markNode.classList.add("tone-good");
+                    markNode.dataset.tone = "good";
+                } else if (replacementMealCount >= 1) {
+                    markNode.innerHTML = `<img src="${lifestyleImageMap.middle}" alt="まあまあ">`;
+                    markNode.classList.add("tone-middle");
+                    markNode.dataset.tone = "middle";
+                } else {
+                    markNode.innerHTML = `<img src="${lifestyleImageMap.bad}" alt="悪い">`;
+                    markNode.classList.add("tone-bad");
+                    markNode.dataset.tone = "bad";
                 }
-                return false;
-            });
-
-            if (rowIndex < 0 || colIndex < 0) {
-                return;
-            }
-
-            const nextRow = matrix[rowIndex + rowOffset];
-            if (!nextRow) {
-                return;
-            }
-
-            const nextField = nextRow[colIndex + colOffset] || nextRow[colIndex];
-            if (!nextField) {
-                return;
-            }
-
-            nextField.focus();
-            if (nextField.select) {
-                nextField.select();
             }
         }
 
-        async function saveRow(row) {
-            const dateValue = row.dataset.date;
-            const formData = new FormData();
-            row.querySelectorAll("input, select").forEach((field) => {
-                if (field.type === "checkbox") {
+        function setReplacementValues(scope, mode) {
+            const breakfast = scope.querySelector('[data-field="breakfast"]');
+            const lunch = scope.querySelector('[data-field="lunch"]');
+            const dinner = scope.querySelector('[data-field="dinner"]');
+            breakfast.value = "活力＋VM1122";
+            lunch.value = mode === "3" ? "D24＋ジュニアバランス" : "D24＋推奨食事";
+            dinner.value = "NB";
+            [breakfast, lunch, dinner].forEach(setMealSelectColor);
+            updateAchievementMark(scope);
+            scheduleSave(scope);
+            syncTodayScopes(scope);
+        }
+
+        function syncTodayScopes(sourceScope) {
+            if (sourceScope.dataset.date !== todayDate) {
+                return;
+            }
+            document.querySelectorAll(`.entry-scope[data-date="${todayDate}"]`).forEach((target) => {
+                if (target === sourceScope) {
                     return;
                 }
-                formData.append(field.name, field.value);
+                ["breakfast", "lunch", "dinner", "weight_kg", "visceral_fat_level", "exercise", "execution"].forEach((fieldName) => {
+                    const from = sourceScope.querySelector(`[data-field="${fieldName}"]`);
+                    const to = target.querySelector(`[data-field="${fieldName}"]`);
+                    if (from && to) {
+                        to.value = from.value;
+                        if (to.classList.contains("meal-select")) {
+                            setMealSelectColor(to);
+                        }
+                    }
+                });
+                updateAchievementMark(target);
             });
+        }
 
+        function showGlobalStatus(message, isError = false) {
+            globalStatus.textContent = message;
+            globalStatus.classList.toggle("error", isError);
+        }
+
+        async function saveScope(scope) {
+            const dateValue = scope.dataset.date;
+            const formData = new FormData();
+            ["breakfast", "lunch", "dinner", "weight_kg", "visceral_fat_level", "exercise", "execution"].forEach((fieldName) => {
+                const field = scope.querySelector(`[data-field="${fieldName}"]`);
+                formData.append(fieldName, field ? field.value : "");
+            });
             try {
                 const response = await fetch(`/api/records/${dateValue}/`, {
                     method: "POST",
-                    headers: {
-                        "X-CSRFToken": csrfToken,
-                    },
-                    body: formData,
+                    headers: { "X-CSRFToken": csrfToken },
+                    body: formData
                 });
                 const payload = await response.json();
                 if (!response.ok || !payload.ok) {
                     throw new Error(payload.error || "保存に失敗しました");
                 }
-                showGlobalStatus(`${payload.date} を保存しました`, "saved");
+                updateAchievementMark(scope);
+                syncTodayScopes(scope);
+                showGlobalStatus(`${dateValue} を保存しました`);
             } catch (error) {
-                showGlobalStatus(error.message, "error");
+                showGlobalStatus(error.message, true);
             }
         }
 
-        function closeAllMenus(exceptMenu) {
-            document.querySelectorAll(".multi-select").forEach((wrapper) => {
-                if (wrapper !== exceptMenu) {
-                    wrapper.classList.remove("open");
-                }
-            });
+        function scheduleSave(scope) {
+            const key = `${scope.dataset.scope}:${scope.dataset.date}`;
+            window.clearTimeout(saveTimers.get(key));
+            saveTimers.set(key, window.setTimeout(() => saveScope(scope), 260));
         }
 
-        function updateMultiSelect(wrapper) {
-            const selectedValues = Array.from(wrapper.querySelectorAll('input[type="checkbox"]:checked'))
-                .map((checkbox) => checkbox.value);
-            const hiddenInput = wrapper.querySelector('input[type="hidden"]');
-            const trigger = wrapper.querySelector(".multi-trigger");
-            hiddenInput.value = selectedValues.join(" / ");
-            trigger.textContent = hiddenInput.value || "選択してください";
+        function applyPlaceholderStep(input, direction) {
+            if (input.value || !input.placeholder) {
+                return false;
+            }
+            const base = Number.parseFloat(input.placeholder);
+            if (Number.isNaN(base)) {
+                return false;
+            }
+            input.value = Math.max(0, base + direction * 0.1).toFixed(1);
+            return true;
         }
 
-        document.querySelectorAll(".multi-select").forEach((wrapper) => {
-            const trigger = wrapper.querySelector(".multi-trigger");
-            const row = wrapper.closest("tr");
+        function getNavMatrix() {
+            return Array.from(document.querySelectorAll(".table-row")).map((row) =>
+                Array.from(row.querySelectorAll("[data-cell]")).sort((a, b) => Number(a.dataset.cell) - Number(b.dataset.cell))
+            );
+        }
 
-            updateMultiSelect(wrapper);
-
-            trigger.addEventListener("click", (event) => {
-                event.stopPropagation();
-                const willOpen = !wrapper.classList.contains("open");
-                closeAllMenus(willOpen ? wrapper : null);
-                wrapper.classList.toggle("open", willOpen);
-            });
-
-             trigger.addEventListener("keydown", (event) => {
-                if (event.key === "ArrowUp") {
-                    event.preventDefault();
-                    focusRelative(trigger, -1, 0);
-                } else if (event.key === "ArrowDown") {
-                    event.preventDefault();
-                    focusRelative(trigger, 1, 0);
-                } else if (event.key === "ArrowLeft") {
-                    event.preventDefault();
-                    focusRelative(trigger, 0, -1);
-                } else if (event.key === "ArrowRight") {
-                    event.preventDefault();
-                    focusRelative(trigger, 0, 1);
-                } else if (event.key === "Escape") {
-                    wrapper.classList.remove("open");
+        function focusRelative(current, rowOffset, colOffset) {
+            const matrix = getNavMatrix();
+            let rowIndex = -1;
+            let colIndex = -1;
+            matrix.forEach((row, currentRowIndex) => {
+                const currentColIndex = row.indexOf(current);
+                if (currentColIndex >= 0) {
+                    rowIndex = currentRowIndex;
+                    colIndex = currentColIndex;
                 }
             });
+            if (rowIndex < 0 || colIndex < 0) {
+                return;
+            }
+            const nextRow = matrix[rowIndex + rowOffset];
+            if (!nextRow) {
+                return;
+            }
+            const next = nextRow[Math.max(0, Math.min(nextRow.length - 1, colIndex + colOffset))];
+            if (next) {
+                next.focus();
+                if (typeof next.select === "function") {
+                    next.select();
+                }
+            }
+        }
 
-            wrapper.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
-                checkbox.addEventListener("change", () => {
-                    updateMultiSelect(wrapper);
-                    saveRow(row);
-                });
+        function getMetricBounds(values, targetValue = null) {
+            const filtered = values.filter((value) => value !== null);
+            if (targetValue !== null) {
+                filtered.push(targetValue);
+            }
+            if (!filtered.length) {
+                return { min: 0, max: 1 };
+            }
+            const min = Math.min(...filtered);
+            const max = Math.max(...filtered);
+            const pad = Math.max((max - min) * 0.15, 0.6);
+            return { min: Math.max(0, min - pad), max: max + pad };
+        }
+
+        function buildLinePath(points, metric, bounds, dims) {
+            const usableWidth = dims.width - dims.left - dims.right;
+            const usableHeight = dims.height - dims.top - dims.bottom;
+            const validPoints = points.filter((point) => point[metric] !== null);
+            return validPoints.map((point, index) => {
+                const x = dims.left + ((point.day - 1) / Math.max(points.length - 1, 1)) * usableWidth;
+                const ratio = (point[metric] - bounds.min) / Math.max(bounds.max - bounds.min, 0.0001);
+                const y = dims.height - dims.bottom - ratio * usableHeight;
+                return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+            }).join(" ");
+        }
+
+        function renderChart(svgId, metric, lineColor, targetValue = null) {
+            const svg = document.getElementById(svgId);
+            const dims = { width: 920, height: 280, left: 54, right: 20, top: 16, bottom: 34 };
+            const bounds = getMetricBounds(chartPoints.map((point) => point[metric]), targetValue);
+            const usableWidth = dims.width - dims.left - dims.right;
+            const usableHeight = dims.height - dims.top - dims.bottom;
+            const xStep = usableWidth / Math.max(chartPoints.length - 1, 1);
+            let html = "";
+
+            for (let row = 0; row < 4; row += 1) {
+                const y = dims.top + (usableHeight / 3) * row;
+                html += `<line x1="${dims.left}" y1="${y}" x2="${dims.width - dims.right}" y2="${y}" stroke="#e2eadb" stroke-width="1" />`;
+                const value = (bounds.max - ((bounds.max - bounds.min) / 3) * row).toFixed(1);
+                html += `<text x="8" y="${y + 4}" fill="#607368" font-size="12">${value}</text>`;
+            }
+
+            chartPoints.forEach((point, index) => {
+                const x = dims.left + xStep * index;
+                html += `<text x="${x}" y="${dims.height - 10}" fill="#607368" font-size="12" text-anchor="middle">${point.label}</text>`;
             });
-        });
 
-        document.addEventListener("click", () => closeAllMenus(null));
+            if (targetValue !== null) {
+                const ratio = (targetValue - bounds.min) / Math.max(bounds.max - bounds.min, 0.0001);
+                const y = dims.height - dims.bottom - ratio * usableHeight;
+                html += `<line x1="${dims.left}" y1="${y}" x2="${dims.width - dims.right}" y2="${y}" stroke="#ef8c22" stroke-width="2" stroke-dasharray="8 6" />`;
+                html += `<text x="${dims.width - dims.right}" y="${y - 8}" fill="#ef8c22" font-size="12" text-anchor="end">目標 ${targetValue.toFixed(1)}kg</text>`;
+            }
 
-        document.querySelectorAll("tbody tr").forEach((row) => {
-            row.querySelectorAll("input, select").forEach((field) => {
-                if (field.type === "hidden" || field.type === "checkbox") {
+            const pathData = buildLinePath(chartPoints, metric, bounds, dims);
+            if (pathData) {
+                html += `<path d="${pathData}" fill="none" stroke="${lineColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
+            }
+
+            chartPoints.forEach((point, index) => {
+                if (point[metric] === null) {
                     return;
                 }
-                field.addEventListener("change", () => saveRow(row));
-                field.addEventListener("blur", () => {
-                    if (!row.contains(document.activeElement)) {
-                        saveRow(row);
+                const x = dims.left + xStep * index;
+                const ratio = (point[metric] - bounds.min) / Math.max(bounds.max - bounds.min, 0.0001);
+                const y = dims.height - dims.bottom - ratio * usableHeight;
+                html += `<circle cx="${x}" cy="${y}" r="4.5" fill="${lineColor}" />`;
+            });
+            svg.innerHTML = html;
+        }
+
+        function renderAllCharts() {
+            const targetValue = targetWeightInput.value ? Number.parseFloat(targetWeightInput.value) : null;
+            renderChart("weight-chart", "weight", "#2f6dcc", Number.isNaN(targetValue) ? null : targetValue);
+            renderChart("visceral-chart", "visceral", "#8a42bf", null);
+        }
+
+        function appendChatMessage(role, message) {
+            const row = document.createElement("div");
+            row.className = "chat-row";
+            const bubble = document.createElement("div");
+            bubble.className = `chat-bubble ${role}`;
+            bubble.textContent = message;
+            row.appendChild(bubble);
+            document.getElementById("chat-messages").appendChild(row);
+            row.scrollIntoView({ block: "end" });
+        }
+
+        function buildChatReply(message) {
+            if (message.includes("食事")) {
+                return "主食・主菜・副菜をそろえつつ、たんぱく質と野菜を毎食入れると続けやすいです。";
+            }
+            if (message.includes("運動")) {
+                return "まずは毎日30分前後を目安にして、歩行や軽い筋トレを無理なく続ける形が現実的です。";
+            }
+            if (message.includes("体重")) {
+                return "急激に減らすより、食事記録と運動時間を整えて週単位でゆるやかに下げる方が安定します。";
+            }
+            return "食事、運動、体重のどれでも質問できます。必要なら記録の見方も案内します。";
+        }
+
+        document.querySelectorAll(".entry-scope").forEach((scope) => {
+            updateAchievementMark(scope);
+            scope.querySelectorAll("select, input").forEach((field) => {
+                field.addEventListener("change", () => {
+                    if (field.classList.contains("meal-select")) {
+                        setMealSelectColor(field);
+                        updateAchievementMark(scope);
+                    }
+                    scheduleSave(scope);
+                    syncTodayScopes(scope);
+                });
+                field.addEventListener("input", () => {
+                    if (field.type === "number" || field.name === "execution") {
+                        scheduleSave(scope);
+                        syncTodayScopes(scope);
                     }
                 });
                 field.addEventListener("keydown", (event) => {
-                    if (field.type === "number" && event.key === "ArrowUp") {
-                        event.preventDefault();
-                        if (adjustNumericInput(field, 1)) {
-                            saveRow(row);
+                    if (field.type === "number" && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+                        const direction = event.key === "ArrowUp" ? 1 : -1;
+                        if (applyPlaceholderStep(field, direction)) {
+                            event.preventDefault();
+                            scheduleSave(scope);
+                            syncTodayScopes(scope);
+                            return;
                         }
-                    } else if (field.type === "number" && event.key === "ArrowDown") {
-                        event.preventDefault();
-                        if (adjustNumericInput(field, -1)) {
-                            saveRow(row);
-                        }
-                    } else if (event.key === "ArrowUp") {
+                    }
+                    if (!field.closest(".table-row")) {
+                        return;
+                    }
+                    if (event.key === "ArrowUp") {
                         event.preventDefault();
                         focusRelative(field, -1, 0);
                     } else if (event.key === "ArrowDown") {
                         event.preventDefault();
                         focusRelative(field, 1, 0);
-                    } else if (event.key === "ArrowLeft") {
+                    } else if (event.key === "ArrowLeft" && (field.tagName === "SELECT" || field.selectionStart === 0)) {
                         event.preventDefault();
                         focusRelative(field, 0, -1);
-                    } else if (event.key === "ArrowRight") {
+                    } else if (event.key === "ArrowRight" && (field.tagName === "SELECT" || field.selectionStart === field.value.length)) {
                         event.preventDefault();
                         focusRelative(field, 0, 1);
                     }
                 });
             });
+            scope.querySelectorAll("[data-set-count]").forEach((button) => {
+                button.addEventListener("click", () => setReplacementValues(scope, button.dataset.setCount));
+            });
+        });
+
+        setAllMealSelectColors();
+
+        loadTargetWeight();
+
+        if (openGraphModalButton && closeGraphModalButton && graphModalBackdrop && targetWeightInput) {
+            openGraphModalButton.addEventListener("click", () => {
+                graphModalBackdrop.classList.add("is-open");
+                renderAllCharts();
+            });
+            closeGraphModalButton.addEventListener("click", () => graphModalBackdrop.classList.remove("is-open"));
+            graphModalBackdrop.addEventListener("click", (event) => {
+                if (event.target === graphModalBackdrop) {
+                    graphModalBackdrop.classList.remove("is-open");
+                }
+            });
+            targetWeightInput.addEventListener("input", () => {
+                renderAllCharts();
+                scheduleTargetWeightSave();
+            });
+            targetWeightInput.addEventListener("change", persistTargetWeight);
+            targetWeightInput.addEventListener("blur", persistTargetWeight);
+        }
+
+        const chatFab = document.getElementById("chat-fab");
+        const chatPanel = document.getElementById("chat-panel");
+        const chatForm = document.getElementById("chat-form");
+        const chatInput = document.getElementById("chat-input");
+
+        chatFab.addEventListener("click", () => chatPanel.classList.toggle("is-open"));
+        document.querySelectorAll("[data-suggestion]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const message = button.dataset.suggestion;
+                appendChatMessage("user", message);
+                appendChatMessage("bot", buildChatReply(message));
+            });
+        });
+        chatForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const message = chatInput.value.trim();
+            if (!message) {
+                return;
+            }
+            appendChatMessage("user", message);
+            appendChatMessage("bot", buildChatReply(message));
+            chatInput.value = "";
         });
     </script>
 </body>

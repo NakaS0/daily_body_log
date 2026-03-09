@@ -10,6 +10,7 @@ class DailyRecord(models.Model):
     visceral_fat_level = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
     exercise = models.CharField(max_length=255, blank=True)
     execution = models.CharField(max_length=255, blank=True)
+    replacement_achieved = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

@@ -5,3 +5,9 @@ __pycache__/
 # Local app data (keep folder only)
 data/*
 !data/.gitkeep
+
+# Local database
+db.sqlite3
+
+# Temporary template-side image copies
+templates/bodylog/*.png

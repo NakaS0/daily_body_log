@@ -2,11 +2,9 @@
 
 朝・昼・晩に食べたもの、体重、内臓脂肪、運動、履行を日単位で記録するアプリです。
 
-このリポジトリには次の 3 実装があります。
+このリポジトリは Django 版を中心に構成されています。
 
 - Django 版: `manage.py` + `daily_body_log/` + `bodylog/`
-- CLI 版: `app.py`
-- Tkinter GUI 版: `gui_app.py`
 
 ## Django 版の概要
 
@@ -31,10 +29,10 @@ pip install -r requirements.txt
 python manage.py migrate
 ```
 
-必要なら既存 CSV を取り込みます。
+必要なら CSV を取り込みます。
 
 ```bash
-python manage.py import_csv_records
+python manage.py import_csv_records --path path\\to\\your.csv
 ```
 
 開発サーバーを起動します。
@@ -63,20 +61,7 @@ python manage.py watch_omron_csv
 
 スマートフォンから送った CSV を `data/omron_inbox` に置くと、自動で DB に反映されます。
 
-## CLI 版の使い方
-
-```bash
-python app.py add --date 2026-03-08 --breakfast "ヨーグルト" --lunch "そば" --dinner "鍋" --weight 63.1 --visceral-fat 7.4 --exercise "散歩30分" --execution "計画どおり"
-python app.py list
-python app.py today
-```
-
-## Tkinter GUI 版
-
-`run_daily_body_log.bat` を実行すると既存 GUI 版を起動できます。
-
 ## データ保存先
 
 - Django 版: `db.sqlite3`
-- 既存 CLI / Tkinter 版: `data/records.csv`
 - `data/` 配下は `.gitignore` で除外済みです（`data/.gitkeep` のみ追跡）
