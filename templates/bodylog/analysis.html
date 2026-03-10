@@ -172,6 +172,30 @@
             border-radius: 12px;
         }
 
+        .metric-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .metric-toggle-button {
+            border: 1px solid #c9d4c0;
+            border-radius: 999px;
+            background: #fff;
+            color: var(--text);
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .metric-toggle-button.is-active {
+            border-color: #2f6dcc;
+            background: #2f6dcc;
+            color: #fff;
+        }
+
         .chart-card {
             border: 1px solid var(--line);
             border-radius: 20px;
@@ -241,6 +265,27 @@
             color: var(--muted);
         }
 
+        .chart-tooltip {
+            position: fixed;
+            z-index: 100;
+            padding: 6px 8px;
+            border-radius: 10px;
+            background: rgba(24, 51, 42, 0.94);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.2;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate(10px, -10px);
+            transition: opacity 0.1s ease;
+            white-space: nowrap;
+        }
+
+        .chart-tooltip.is-visible {
+            opacity: 1;
+        }
+
         .calendar-table {
             width: 100%;
             border-collapse: separate;
@@ -277,6 +322,10 @@
         .calendar-cell.today {
             border-color: #90be42;
             box-shadow: inset 0 0 0 2px rgba(118, 173, 46, 0.22);
+        }
+
+        .calendar-cell.has-note {
+            cursor: help;
         }
 
         .calendar-day {
@@ -368,6 +417,30 @@
             color: #9aaba1;
         }
 
+        .calendar-note-tooltip {
+            position: fixed;
+            z-index: 120;
+            max-width: min(380px, calc(100vw - 24px));
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(24, 51, 42, 0.96);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.45;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate(10px, -10px);
+            transition: opacity 0.1s ease;
+            white-space: pre-wrap;
+            word-break: break-word;
+            box-shadow: 0 10px 24px rgba(24, 51, 42, 0.3);
+        }
+
+        .calendar-note-tooltip.is-visible {
+            opacity: 1;
+        }
+
         @media (max-width: 820px) {
             .layout {
                 padding: 18px 14px 28px;
@@ -427,6 +500,11 @@
             <div class="target-row">
                 <label for="target-weight-input">目標体重</label>
                 <input class="target-input" type="number" step="0.1" min="0" id="target-weight-input" placeholder="例: 55.0">
+                <div class="metric-toggle" role="group" aria-label="グラフ表示切り替え">
+                    <button type="button" class="metric-toggle-button is-active" data-metric-mode="weight" aria-pressed="true">体重</button>
+                    <button type="button" class="metric-toggle-button" data-metric-mode="visceral" aria-pressed="false">内臓脂肪</button>
+                    <button type="button" class="metric-toggle-button" data-metric-mode="both" aria-pressed="false">体重・内臓脂肪</button>
+                </div>
             </div>
             <article class="chart-card">
                 <h3>体重・内臓脂肪の推移</h3>
@@ -456,7 +534,7 @@
                     {% for week in calendar_weeks %}
                         <tr>
                             {% for day in week %}
-                                <td class="calendar-cell{% if day.is_outside_month %} outside{% endif %}{% if day.is_today %} today{% endif %}">
+                                <td class="calendar-cell{% if day.is_outside_month %} outside{% endif %}{% if day.is_today %} today{% endif %}" data-note="{{ day.execution }}">
                                     <div class="calendar-day">
                                         <span>{{ day.day }}</span>
                                         <div class="calendar-weight-row">
@@ -488,11 +566,17 @@
         </section>
     </div>
 
+    <div class="chart-tooltip" id="chart-tooltip" aria-hidden="true"></div>
+    <div class="calendar-note-tooltip" id="calendar-note-tooltip" aria-hidden="true"></div>
     <script>
         const chartPoints = JSON.parse(document.getElementById("analysis-chart-points").textContent);
         const targetWeightInput = document.getElementById("target-weight-input");
+        const metricModeButtons = Array.from(document.querySelectorAll("[data-metric-mode]"));
+        const chartTooltip = document.getElementById("chart-tooltip");
+        const calendarNoteTooltip = document.getElementById("calendar-note-tooltip");
         const TARGET_WEIGHT_STORAGE_KEY = "daily_body_log_target_weight";
         let targetWeightSaveTimer = null;
+        let chartMetricMode = "weight";
 
         // 保存済みの目標体重を localStorage から復元する。
         function loadTargetWeight() {
@@ -516,6 +600,68 @@
         function scheduleTargetWeightSave() {
             window.clearTimeout(targetWeightSaveTimer);
             targetWeightSaveTimer = window.setTimeout(persistTargetWeight, 250);
+        }
+
+        // 点ホバー時に値を表示するツールチップを表示する。
+        function showChartTooltip(text, event) {
+            if (!chartTooltip) {
+                return;
+            }
+            chartTooltip.textContent = text;
+            chartTooltip.style.left = `${event.clientX}px`;
+            chartTooltip.style.top = `${event.clientY}px`;
+            chartTooltip.classList.add("is-visible");
+        }
+
+        // ツールチップを非表示にする。
+        function hideChartTooltip() {
+            if (!chartTooltip) {
+                return;
+            }
+            chartTooltip.classList.remove("is-visible");
+        }
+
+        // 描画後のポイントにツールチップイベントを付与する。
+        function bindPointTooltip(svg) {
+            svg.querySelectorAll("[data-tooltip]").forEach((node) => {
+                node.addEventListener("mouseenter", (event) => showChartTooltip(node.dataset.tooltip, event));
+                node.addEventListener("mousemove", (event) => showChartTooltip(node.dataset.tooltip, event));
+                node.addEventListener("mouseleave", hideChartTooltip);
+                node.addEventListener("blur", hideChartTooltip);
+            });
+        }
+
+        // カレンダーセルの備考をホバー時に表示する。
+        function showCalendarNoteTooltip(text, event) {
+            if (!calendarNoteTooltip) {
+                return;
+            }
+            calendarNoteTooltip.textContent = text;
+            calendarNoteTooltip.style.left = `${event.clientX}px`;
+            calendarNoteTooltip.style.top = `${event.clientY}px`;
+            calendarNoteTooltip.classList.add("is-visible");
+        }
+
+        // カレンダー備考ツールチップを非表示にする。
+        function hideCalendarNoteTooltip() {
+            if (!calendarNoteTooltip) {
+                return;
+            }
+            calendarNoteTooltip.classList.remove("is-visible");
+        }
+
+        // 備考があるカレンダーセルだけにホバーイベントを設定する。
+        function bindCalendarNoteTooltip() {
+            document.querySelectorAll(".calendar-cell").forEach((cell) => {
+                const note = (cell.dataset.note || "").trim();
+                if (!note) {
+                    return;
+                }
+                cell.classList.add("has-note");
+                cell.addEventListener("mouseenter", (event) => showCalendarNoteTooltip(note, event));
+                cell.addEventListener("mousemove", (event) => showCalendarNoteTooltip(note, event));
+                cell.addEventListener("mouseleave", hideCalendarNoteTooltip);
+            });
         }
 
         // グラフの縦軸範囲を決めるため最小値と最大値を求める。
@@ -547,23 +693,30 @@
         }
 
         // 体重と内臓脂肪を 1 枚の複合グラフとして描画する。
-        function renderCombinedChart(targetValue = null) {
+        function renderCombinedChart(targetValue = null, metricMode = "weight") {
             const svg = document.getElementById("combined-chart");
             const dims = { width: 1280, height: 420, left: 72, right: 72, top: 24, bottom: 48 };
+            const showWeight = metricMode === "weight" || metricMode === "both";
+            const showVisceral = metricMode === "visceral" || metricMode === "both";
             const weightBounds = getMetricBounds(chartPoints.map((point) => point.weight), targetValue);
             const visceralBounds = getMetricBounds(chartPoints.map((point) => point.visceral), null);
             const usableWidth = dims.width - dims.left - dims.right;
             const usableHeight = dims.height - dims.top - dims.bottom;
             const xStep = usableWidth / Math.max(chartPoints.length - 1, 1);
             let html = "";
+            hideChartTooltip();
 
             for (let row = 0; row < 4; row += 1) {
                 const y = dims.top + (usableHeight / 3) * row;
                 html += `<line x1="${dims.left}" y1="${y}" x2="${dims.width - dims.right}" y2="${y}" stroke="#e2eadb" stroke-width="1" />`;
                 const leftValue = (weightBounds.max - ((weightBounds.max - weightBounds.min) / 3) * row).toFixed(1);
                 const rightValue = (visceralBounds.max - ((visceralBounds.max - visceralBounds.min) / 3) * row).toFixed(1);
-                html += `<text x="8" y="${y + 5}" fill="#2f6dcc" font-size="14">${leftValue}</text>`;
-                html += `<text x="${dims.width - 8}" y="${y + 5}" fill="#8a42bf" font-size="14" text-anchor="end">${rightValue}</text>`;
+                if (showWeight) {
+                    html += `<text x="8" y="${y + 5}" fill="#2f6dcc" font-size="14">${leftValue}</text>`;
+                }
+                if (showVisceral) {
+                    html += `<text x="${dims.width - 8}" y="${y + 5}" fill="#8a42bf" font-size="14" text-anchor="end">${rightValue}</text>`;
+                }
             }
 
             chartPoints.forEach((point, index) => {
@@ -571,7 +724,7 @@
                 html += `<text x="${x}" y="${dims.height - 10}" fill="#607368" font-size="14" text-anchor="middle">${point.label}</text>`;
             });
 
-            if (targetValue !== null) {
+            if (targetValue !== null && showWeight) {
                 const ratio = (targetValue - weightBounds.min) / Math.max(weightBounds.max - weightBounds.min, 0.0001);
                 const y = dims.height - dims.bottom - ratio * usableHeight;
                 html += `<line x1="${dims.left}" y1="${y}" x2="${dims.width - dims.right}" y2="${y}" stroke="#ef8c22" stroke-width="2" stroke-dasharray="8 6" />`;
@@ -580,41 +733,60 @@
 
             const weightPath = buildScaledPath(chartPoints, "weight", weightBounds, dims);
             const visceralPath = buildScaledPath(chartPoints, "visceral", visceralBounds, dims);
-            if (weightPath) {
+            if (showWeight && weightPath) {
                 html += `<path d="${weightPath}" fill="none" stroke="#2f6dcc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
             }
-            chartPoints.forEach((point, index) => {
-                if (point.weight === null) {
-                    return;
-                }
-                const x = dims.left + xStep * index;
-                const ratio = (point.weight - weightBounds.min) / Math.max(weightBounds.max - weightBounds.min, 0.0001);
-                const y = dims.height - dims.bottom - ratio * usableHeight;
-                html += `<circle cx="${x}" cy="${y}" r="4.5" fill="#2f6dcc" />`;
-            });
-            if (visceralPath) {
+            if (showWeight) {
+                chartPoints.forEach((point, index) => {
+                    if (point.weight === null) {
+                        return;
+                    }
+                    const x = dims.left + xStep * index;
+                    const ratio = (point.weight - weightBounds.min) / Math.max(weightBounds.max - weightBounds.min, 0.0001);
+                    const y = dims.height - dims.bottom - ratio * usableHeight;
+                    html += `<circle cx="${x}" cy="${y}" r="4.5" fill="#2f6dcc" data-tooltip="${point.label} 体重 ${point.weight.toFixed(1)}kg" />`;
+                });
+            }
+            if (showVisceral && visceralPath) {
                 html += `<path d="${visceralPath}" fill="none" stroke="#8a42bf" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
             }
-            chartPoints.forEach((point, index) => {
-                if (point.visceral === null) {
-                    return;
-                }
-                const x = dims.left + xStep * index;
-                const ratio = (point.visceral - visceralBounds.min) / Math.max(visceralBounds.max - visceralBounds.min, 0.0001);
-                const y = dims.height - dims.bottom - ratio * usableHeight;
-                html += `<circle cx="${x}" cy="${y}" r="4.5" fill="#8a42bf" />`;
-            });
+            if (showVisceral) {
+                chartPoints.forEach((point, index) => {
+                    if (point.visceral === null) {
+                        return;
+                    }
+                    const x = dims.left + xStep * index;
+                    const ratio = (point.visceral - visceralBounds.min) / Math.max(visceralBounds.max - visceralBounds.min, 0.0001);
+                    const y = dims.height - dims.bottom - ratio * usableHeight;
+                    html += `<circle cx="${x}" cy="${y}" r="4.5" fill="#8a42bf" data-tooltip="${point.label} 内臓脂肪 ${point.visceral.toFixed(1)}" />`;
+                });
+            }
 
             svg.innerHTML = html;
+            bindPointTooltip(svg);
+        }
+
+        // グラフ表示モードを切り替える。
+        function setMetricMode(mode) {
+            chartMetricMode = mode;
+            metricModeButtons.forEach((button) => {
+                const isActive = button.dataset.metricMode === mode;
+                button.classList.toggle("is-active", isActive);
+                button.setAttribute("aria-pressed", isActive ? "true" : "false");
+            });
+            renderAllCharts();
         }
 
         // 現在の目標体重を反映して複合グラフを描き直す。
         function renderAllCharts() {
             const targetValue = targetWeightInput.value ? Number.parseFloat(targetWeightInput.value) : null;
-            renderCombinedChart(Number.isNaN(targetValue) ? null : targetValue);
+            renderCombinedChart(Number.isNaN(targetValue) ? null : targetValue, chartMetricMode);
         }
 
         loadTargetWeight();
+        metricModeButtons.forEach((button) => {
+            button.addEventListener("click", () => setMetricMode(button.dataset.metricMode));
+        });
         targetWeightInput.addEventListener("input", () => {
             renderAllCharts();
             scheduleTargetWeightSave();
@@ -622,6 +794,7 @@
         targetWeightInput.addEventListener("change", persistTargetWeight);
         targetWeightInput.addEventListener("blur", persistTargetWeight);
         renderAllCharts();
+        bindCalendarNoteTooltip();
     </script>
 </body>
 </html>

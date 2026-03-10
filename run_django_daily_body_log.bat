@@ -1,18 +1,24 @@
 @echo off
-rem Django 開発サーバーを起動し、ブラウザを開くためのバッチファイル
+rem Start Django dev server and open browser
 cd /d %~dp0
 
-set URL=http://127.0.0.1:8000/
+set "URL=http://127.0.0.1:8000/"
+set "PYEXE="
+
+if exist ".venv\Scripts\python.exe" (
+    set "PYEXE=.venv\Scripts\python.exe"
+) else (
+    where py >nul 2>nul
+    if %errorlevel%==0 (
+        set "PYEXE=py -3"
+    ) else (
+        set "PYEXE=python"
+    )
+)
 
 for /f "tokens=2 delims==; " %%P in ('wmic process where "name='python.exe' and commandline like '%%manage.py runserver%%'" get processid /value 2^>nul') do (
     if not "%%P"=="" taskkill /PID %%P /F >nul 2>nul
 )
 
-where py >nul 2>nul
-if %errorlevel%==0 (
-    start "" %URL%
-    py -3 manage.py runserver
-) else (
-    start "" %URL%
-    python manage.py runserver
-)
+start "" %URL%
+%PYEXE% manage.py runserver

@@ -257,12 +257,13 @@
         .status-bar.error { color: var(--danger); }
 
         .meal-value-活力＋VM1122 { color: #006a8e; font-weight: 800; }
+        .meal-value-推奨食事 { color: #2f8f35; font-weight: 800; }
         .meal-value-D24＋推奨食事 { color: #2f8f35; font-weight: 800; }
         .meal-value-D24＋ジュニアバランス { color: #d17700; font-weight: 800; }
         .meal-value-NB { color: #6e4cc9; font-weight: 800; }
         .meal-value-外食 { color: #a95516; font-weight: 800; }
         .meal-value-サボリ { color: #c33b37; font-weight: 800; }
-        .meal-value-不明 { color: #717171; font-weight: 800; }
+        .meal-value-なし, .meal-value-不明 { color: #717171; font-weight: 800; }
 
         .fab {
             position: fixed;
@@ -314,11 +315,45 @@
         .graph-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
         .graph-title { margin: 0; font-size: 28px; font-weight: 800; }
         .graph-close { border: 0; background: #eef4ea; border-radius: 12px; width: 42px; height: 42px; cursor: pointer; font-size: 20px; }
+        .graph-toggle { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .graph-toggle-button {
+            border: 1px solid #c9d4c0;
+            border-radius: 999px;
+            background: #fff;
+            color: var(--text);
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .graph-toggle-button.is-active {
+            border-color: #2f6dcc;
+            background: #2f6dcc;
+            color: #fff;
+        }
         .chart-grid { display: grid; gap: 16px; }
         .chart-card { background: #f9fbf6; border: 1px solid #e2eadb; border-radius: 20px; padding: 16px; }
+        .chart-card.is-hidden { display: none; }
         .chart-card h3 { margin: 0 0 10px; font-size: 18px; }
         .chart-svg { width: 100%; height: 280px; display: block; background: #fff; border: 1px solid #dce6d3; border-radius: 16px; }
         .chart-caption { margin-top: 8px; font-size: 13px; color: var(--muted); }
+        .graph-tooltip {
+            position: fixed;
+            z-index: 120;
+            padding: 6px 8px;
+            border-radius: 10px;
+            background: rgba(24, 51, 42, 0.94);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.2;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate(10px, -10px);
+            transition: opacity 0.1s ease;
+            white-space: nowrap;
+        }
+        .graph-tooltip.is-visible { opacity: 1; }
 
         @media (max-width: 1220px) {
             .quick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -546,14 +581,19 @@
                     <span class="field-label">目標体重</span>
                     <input class="field-input metric-input" type="number" step="0.1" min="0" id="target-weight-input" placeholder="例: 55.0">
                 </label>
+                <div class="graph-toggle" role="group" aria-label="グラフ表示切り替え">
+                    <button type="button" class="graph-toggle-button is-active" data-graph-mode="weight" aria-pressed="true">体重</button>
+                    <button type="button" class="graph-toggle-button" data-graph-mode="visceral" aria-pressed="false">内臓脂肪</button>
+                    <button type="button" class="graph-toggle-button" data-graph-mode="both" aria-pressed="false">体重・内臓脂肪</button>
+                </div>
             </div>
             <div class="chart-grid">
-                <article class="chart-card">
+                <article class="chart-card" data-chart-card="weight">
                     <h3>体重</h3>
                     <svg class="chart-svg" id="weight-chart" viewBox="0 0 920 280" preserveAspectRatio="none"></svg>
                     <div class="chart-caption">青線が体重、オレンジ破線が目標体重ラインです。</div>
                 </article>
-                <article class="chart-card">
+                <article class="chart-card" data-chart-card="visceral">
                     <h3>内臓脂肪</h3>
                     <svg class="chart-svg" id="visceral-chart" viewBox="0 0 920 280" preserveAspectRatio="none"></svg>
                     <div class="chart-caption">月の推移を日付ごとに表示します。</div>
@@ -561,6 +601,7 @@
             </div>
         </section>
     </div>
+    <div class="graph-tooltip" id="graph-tooltip" aria-hidden="true"></div>
     <script>
         const csrfToken = "{{ csrf_token }}";
         const chartPoints = JSON.parse(document.getElementById("chart-points-data").textContent);
@@ -569,6 +610,10 @@
         const openGraphModalButton = document.getElementById("open-graph-modal");
         const closeGraphModalButton = document.getElementById("close-graph-modal");
         const targetWeightInput = document.getElementById("target-weight-input");
+        const graphModeButtons = Array.from(document.querySelectorAll("[data-graph-mode]"));
+        const weightChartCard = document.querySelector('[data-chart-card="weight"]');
+        const visceralChartCard = document.querySelector('[data-chart-card="visceral"]');
+        const graphTooltip = document.getElementById("graph-tooltip");
         const TARGET_WEIGHT_STORAGE_KEY = "daily_body_log_target_weight";
         const lifestyleImageMap = {
             good: "{% static 'bodylog/good.png' %}",
@@ -578,6 +623,7 @@
         const todayDate = "{{ today|date:'Y-m-d' }}";
         const saveTimers = new Map();
         let targetWeightSaveTimer = null;
+        let graphMode = "weight";
 
         // 保存済みの目標体重を localStorage から読み込む。
         function loadTargetWeight() {
@@ -607,6 +653,35 @@
         function scheduleTargetWeightSave() {
             window.clearTimeout(targetWeightSaveTimer);
             targetWeightSaveTimer = window.setTimeout(persistTargetWeight, 250);
+        }
+
+        // 点ホバー時に値を表示するツールチップを表示する。
+        function showGraphTooltip(text, event) {
+            if (!graphTooltip) {
+                return;
+            }
+            graphTooltip.textContent = text;
+            graphTooltip.style.left = `${event.clientX}px`;
+            graphTooltip.style.top = `${event.clientY}px`;
+            graphTooltip.classList.add("is-visible");
+        }
+
+        // ツールチップを非表示にする。
+        function hideGraphTooltip() {
+            if (!graphTooltip) {
+                return;
+            }
+            graphTooltip.classList.remove("is-visible");
+        }
+
+        // 描画後のポイントにツールチップイベントを付与する。
+        function bindGraphPointTooltip(svg) {
+            svg.querySelectorAll("[data-tooltip]").forEach((node) => {
+                node.addEventListener("mouseenter", (event) => showGraphTooltip(node.dataset.tooltip, event));
+                node.addEventListener("mousemove", (event) => showGraphTooltip(node.dataset.tooltip, event));
+                node.addEventListener("mouseleave", hideGraphTooltip);
+                node.addEventListener("blur", hideGraphTooltip);
+            });
         }
 
         // 選択中の食事内容に応じて文字色クラスを付け替える。
@@ -851,6 +926,7 @@
             const usableHeight = dims.height - dims.top - dims.bottom;
             const xStep = usableWidth / Math.max(chartPoints.length - 1, 1);
             let html = "";
+            hideGraphTooltip();
 
             for (let row = 0; row < 4; row += 1) {
                 const y = dims.top + (usableHeight / 3) * row;
@@ -883,16 +959,43 @@
                 const x = dims.left + xStep * index;
                 const ratio = (point[metric] - bounds.min) / Math.max(bounds.max - bounds.min, 0.0001);
                 const y = dims.height - dims.bottom - ratio * usableHeight;
-                html += `<circle cx="${x}" cy="${y}" r="4.5" fill="${lineColor}" />`;
+                const tooltip = metric === "visceral"
+                    ? `${point.label} 内臓脂肪 ${point.visceral.toFixed(1)}`
+                    : `${point.label} 体重 ${point.weight.toFixed(1)}kg`;
+                html += `<circle cx="${x}" cy="${y}" r="4.5" fill="${lineColor}" data-tooltip="${tooltip}" />`;
             });
             svg.innerHTML = html;
+            bindGraphPointTooltip(svg);
+        }
+
+        // モーダル内グラフの表示モードを切り替える。
+        function setGraphMode(mode) {
+            graphMode = mode;
+            graphModeButtons.forEach((button) => {
+                const isActive = button.dataset.graphMode === mode;
+                button.classList.toggle("is-active", isActive);
+                button.setAttribute("aria-pressed", isActive ? "true" : "false");
+            });
+            renderAllCharts();
         }
 
         // モーダル内の全グラフをまとめて描画し直す。
         function renderAllCharts() {
             const targetValue = targetWeightInput.value ? Number.parseFloat(targetWeightInput.value) : null;
-            renderChart("weight-chart", "weight", "#2f6dcc", Number.isNaN(targetValue) ? null : targetValue);
-            renderChart("visceral-chart", "visceral", "#8a42bf", null);
+            const showWeight = graphMode === "weight" || graphMode === "both";
+            const showVisceral = graphMode === "visceral" || graphMode === "both";
+            if (weightChartCard) {
+                weightChartCard.classList.toggle("is-hidden", !showWeight);
+            }
+            if (visceralChartCard) {
+                visceralChartCard.classList.toggle("is-hidden", !showVisceral);
+            }
+            if (showWeight) {
+                renderChart("weight-chart", "weight", "#2f6dcc", Number.isNaN(targetValue) ? null : targetValue);
+            }
+            if (showVisceral) {
+                renderChart("visceral-chart", "visceral", "#8a42bf", null);
+            }
         }
 
         // チャット欄へユーザーまたはボットの発言を 1 件追加する。
@@ -974,15 +1077,22 @@
         setAllMealSelectColors();
 
         loadTargetWeight();
+        graphModeButtons.forEach((button) => {
+            button.addEventListener("click", () => setGraphMode(button.dataset.graphMode));
+        });
 
         if (openGraphModalButton && closeGraphModalButton && graphModalBackdrop && targetWeightInput) {
             openGraphModalButton.addEventListener("click", () => {
                 graphModalBackdrop.classList.add("is-open");
                 renderAllCharts();
             });
-            closeGraphModalButton.addEventListener("click", () => graphModalBackdrop.classList.remove("is-open"));
+            closeGraphModalButton.addEventListener("click", () => {
+                hideGraphTooltip();
+                graphModalBackdrop.classList.remove("is-open");
+            });
             graphModalBackdrop.addEventListener("click", (event) => {
                 if (event.target === graphModalBackdrop) {
+                    hideGraphTooltip();
                     graphModalBackdrop.classList.remove("is-open");
                 }
             });

@@ -14,8 +14,9 @@ from .models import DailyRecord
 
 BREAKFAST_OPTIONS = [
     "活力＋VM1122",
+    "推奨食事",
     "サボリ",
-    "不明",
+    "なし",
 ]
 
 LUNCH_OPTIONS = [
@@ -23,7 +24,7 @@ LUNCH_OPTIONS = [
     "D24＋ジュニアバランス",
     "外食",
     "サボリ",
-    "不明",
+    "なし",
 ]
 
 DINNER_OPTIONS = [
@@ -31,7 +32,7 @@ DINNER_OPTIONS = [
     "活力＋VM1122",
     "外食",
     "サボリ",
-    "不明",
+    "なし",
 ]
 
 MEAL_SEPARATOR = " / "
@@ -54,6 +55,11 @@ def _build_exercise_options() -> list[str]:
 
 
 EXERCISE_OPTIONS = _build_exercise_options()
+
+
+def _normalize_meal_value(value: str) -> str:
+    """旧値「不明」を新値「なし」へ読み替える。"""
+    return "なし" if value == "不明" else value
 
 
 def _parse_optional_decimal(raw_value: str, field_label: str) -> Decimal | None:
@@ -203,9 +209,9 @@ def _build_month_context(display_year: int, display_month: int) -> dict[str, obj
     for day_number in range(1, days_in_month + 1):
         current_day = date(display_year, display_month, day_number)
         record = month_records.get(current_day)
-        breakfast_value = record.breakfast if record else ""
-        lunch_value = record.lunch if record else ""
-        dinner_value = record.dinner if record else ""
+        breakfast_value = _normalize_meal_value(record.breakfast) if record else ""
+        lunch_value = _normalize_meal_value(record.lunch) if record else ""
+        dinner_value = _normalize_meal_value(record.dinner) if record else ""
         weight_value = f"{record.weight_kg:.1f}" if record and record.weight_kg is not None else ""
         visceral_value = (
             f"{record.visceral_fat_level:.1f}"
@@ -255,6 +261,7 @@ def _build_month_context(display_year: int, display_month: int) -> dict[str, obj
                 "date": current_day,
                 "day": day_number,
                 "weight_value": weight_value,
+                "execution": record.execution if record else "",
                 "replacement_complete": replacement_complete,
                 "lifestyle_tone": _lifestyle_tone(breakfast_value, lunch_value, dinner_value),
                 "calendar_symbol": _calendar_symbol(breakfast_value, lunch_value, dinner_value),
@@ -286,6 +293,7 @@ def _build_month_context(display_year: int, display_month: int) -> dict[str, obj
                         "date": week_day,
                         "day": week_day.day,
                         "weight_value": "",
+                        "execution": "",
                         "replacement_complete": False,
                         "lifestyle_tone": "empty",
                         "calendar_symbol": "-",
@@ -299,12 +307,12 @@ def _build_month_context(display_year: int, display_month: int) -> dict[str, obj
         "today": today,
         "today_label": f"{today.month}/{today.day}（{WEEKDAY_LABELS[today.weekday()]}）",
         "today_record": today_record,
-        "today_breakfast_value": today_record.breakfast if today_record else "",
-        "today_lunch_value": today_record.lunch if today_record else "",
-        "today_dinner_value": today_record.dinner if today_record else "",
-        "today_breakfast_selected": _split_multi_value(today_record.breakfast if today_record else ""),
-        "today_lunch_selected": _split_multi_value(today_record.lunch if today_record else ""),
-        "today_dinner_selected": _split_multi_value(today_record.dinner if today_record else ""),
+        "today_breakfast_value": _normalize_meal_value(today_record.breakfast) if today_record else "",
+        "today_lunch_value": _normalize_meal_value(today_record.lunch) if today_record else "",
+        "today_dinner_value": _normalize_meal_value(today_record.dinner) if today_record else "",
+        "today_breakfast_selected": _split_multi_value(_normalize_meal_value(today_record.breakfast) if today_record else ""),
+        "today_lunch_selected": _split_multi_value(_normalize_meal_value(today_record.lunch) if today_record else ""),
+        "today_dinner_selected": _split_multi_value(_normalize_meal_value(today_record.dinner) if today_record else ""),
         "today_weight_value": (
             f"{today_record.weight_kg:.1f}"
             if today_record and today_record.weight_kg is not None
@@ -361,9 +369,9 @@ def save_record(request: HttpRequest, date_value: str) -> JsonResponse:
     """1 日分の入力値を保存し、保存結果を JSON で返す。"""
     try:
         log_date = datetime.strptime(date_value, "%Y-%m-%d").date()
-        breakfast = _join_multi_value(_split_multi_value(request.POST.get("breakfast", "")))
-        lunch = _join_multi_value(_split_multi_value(request.POST.get("lunch", "")))
-        dinner = _join_multi_value(_split_multi_value(request.POST.get("dinner", "")))
+        breakfast = _normalize_meal_value(_join_multi_value(_split_multi_value(request.POST.get("breakfast", ""))))
+        lunch = _normalize_meal_value(_join_multi_value(_split_multi_value(request.POST.get("lunch", ""))))
+        dinner = _normalize_meal_value(_join_multi_value(_split_multi_value(request.POST.get("dinner", ""))))
         weight_kg = _parse_optional_decimal(request.POST.get("weight_kg", ""), "体重")
         visceral_fat_level = _parse_optional_decimal(
             request.POST.get("visceral_fat_level", ""),
