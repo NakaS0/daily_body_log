@@ -5,6 +5,7 @@ __pycache__/
 # Local app data (keep folder only)
 data/*
 !data/.gitkeep
+!data/test_daily_records.json
 
 # Local database
 db.sqlite3

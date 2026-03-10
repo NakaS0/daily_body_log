@@ -1,0 +1,274 @@
+[
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 1,
+  "fields": {
+    "log_date": "2026-03-01",
+    "breakfast": "活力＋VM1122",
+    "lunch": "D24＋推奨食事",
+    "dinner": "NB",
+    "weight_kg": "79.0",
+    "visceral_fat_level": "39.0",
+    "exercise": "30分",
+    "execution": "",
+    "replacement_achieved": true,
+    "updated_at": "2026-03-10T00:30:50.987Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 2,
+  "fields": {
+    "log_date": "2026-03-02",
+    "breakfast": "活力＋VM1122",
+    "lunch": "D24＋ジュニアバランス",
+    "dinner": "NB",
+    "weight_kg": "78.6",
+    "visceral_fat_level": "37.0",
+    "exercise": "1時間",
+    "execution": "",
+    "replacement_achieved": true,
+    "updated_at": "2026-03-10T00:30:52.334Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 3,
+  "fields": {
+    "log_date": "2026-03-03",
+    "breakfast": "推奨食事",
+    "lunch": "サボリ",
+    "dinner": "外食",
+    "weight_kg": "78.2",
+    "visceral_fat_level": "35.0",
+    "exercise": "2時間30分",
+    "execution": "誘惑に負けてラーメン",
+    "replacement_achieved": false,
+    "updated_at": "2026-03-10T01:04:40.509Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 4,
+  "fields": {
+    "log_date": "2026-03-04",
+    "breakfast": "活力＋VM1122",
+    "lunch": "D24＋推奨食事",
+    "dinner": "NB",
+    "weight_kg": "78.7",
+    "visceral_fat_level": "38.0",
+    "exercise": "4時間",
+    "execution": "",
+    "replacement_achieved": true,
+    "updated_at": "2026-03-10T00:32:05.592Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 5,
+  "fields": {
+    "log_date": "2026-03-05",
+    "breakfast": "活力＋VM1122",
+    "lunch": "D24＋ジュニアバランス",
+    "dinner": "NB",
+    "weight_kg": "78.4",
+    "visceral_fat_level": "36.0",
+    "exercise": "1時間30分",
+    "execution": "",
+    "replacement_achieved": true,
+    "updated_at": "2026-03-10T00:33:15.361Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 6,
+  "fields": {
+    "log_date": "2026-03-06",
+    "breakfast": "活力＋VM1122",
+    "lunch": "D24＋推奨食事",
+    "dinner": "外食",
+    "weight_kg": "77.9",
+    "visceral_fat_level": "35.0",
+    "exercise": "2時間",
+    "execution": "友人とガスト",
+    "replacement_achieved": false,
+    "updated_at": "2026-03-10T00:36:06.931Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 7,
+  "fields": {
+    "log_date": "2026-03-07",
+    "breakfast": "推奨食事",
+    "lunch": "外食",
+    "dinner": "NB",
+    "weight_kg": "77.4",
+    "visceral_fat_level": "34.7",
+    "exercise": "",
+    "execution": "サプリメントが切れたため",
+    "replacement_achieved": false,
+    "updated_at": "2026-03-10T02:13:36.302Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 8,
+  "fields": {
+    "log_date": "2026-03-08",
+    "breakfast": "活力＋VM1122",
+    "lunch": "D24＋推奨食事",
+    "dinner": "NB",
+    "weight_kg": "77.0",
+    "visceral_fat_level": "34.5",
+    "exercise": "1時間",
+    "execution": "",
+    "replacement_achieved": true,
+    "updated_at": "2026-03-10T03:54:10.019Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 9,
+  "fields": {
+    "log_date": "2026-03-09",
+    "breakfast": "なし",
+    "lunch": "サボリ",
+    "dinner": "サボリ",
+    "weight_kg": "76.7",
+    "visceral_fat_level": "34.3",
+    "exercise": "1時間",
+    "execution": "チートデー",
+    "replacement_achieved": false,
+    "updated_at": "2026-03-10T03:54:11.664Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 10,
+  "fields": {
+    "log_date": "2026-03-10",
+    "breakfast": "活力＋VM1122",
+    "lunch": "D24＋ジュニアバランス",
+    "dinner": "NB",
+    "weight_kg": "77.1",
+    "visceral_fat_level": "34.9",
+    "exercise": "",
+    "execution": "",
+    "replacement_achieved": true,
+    "updated_at": "2026-03-10T02:15:11.567Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 11,
+  "fields": {
+    "log_date": "2026-03-11",
+    "breakfast": "活力＋VM1122",
+    "lunch": "D24＋ジュニアバランス",
+    "dinner": "NB",
+    "weight_kg": null,
+    "visceral_fat_level": null,
+    "exercise": "",
+    "execution": "",
+    "replacement_achieved": true,
+    "updated_at": "2026-03-10T00:30:12.056Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 12,
+  "fields": {
+    "log_date": "2026-03-12",
+    "breakfast": "活力＋VM1122",
+    "lunch": "D24＋推奨食事",
+    "dinner": "NB",
+    "weight_kg": null,
+    "visceral_fat_level": null,
+    "exercise": "",
+    "execution": "",
+    "replacement_achieved": true,
+    "updated_at": "2026-03-10T00:30:12.605Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 13,
+  "fields": {
+    "log_date": "2026-03-13",
+    "breakfast": "活力＋VM1122",
+    "lunch": "D24＋ジュニアバランス",
+    "dinner": "NB",
+    "weight_kg": null,
+    "visceral_fat_level": null,
+    "exercise": "",
+    "execution": "",
+    "replacement_achieved": true,
+    "updated_at": "2026-03-10T00:30:13.432Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 14,
+  "fields": {
+    "log_date": "2026-03-14",
+    "breakfast": "活力＋VM1122",
+    "lunch": "D24＋推奨食事",
+    "dinner": "NB",
+    "weight_kg": null,
+    "visceral_fat_level": null,
+    "exercise": "",
+    "execution": "",
+    "replacement_achieved": true,
+    "updated_at": "2026-03-10T00:30:14.014Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 15,
+  "fields": {
+    "log_date": "2026-03-15",
+    "breakfast": "活力＋VM1122",
+    "lunch": "D24＋ジュニアバランス",
+    "dinner": "NB",
+    "weight_kg": null,
+    "visceral_fat_level": null,
+    "exercise": "",
+    "execution": "",
+    "replacement_achieved": true,
+    "updated_at": "2026-03-10T00:30:15.239Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 16,
+  "fields": {
+    "log_date": "2026-03-16",
+    "breakfast": "活力＋VM1122",
+    "lunch": "D24＋推奨食事",
+    "dinner": "NB",
+    "weight_kg": null,
+    "visceral_fat_level": null,
+    "exercise": "",
+    "execution": "",
+    "replacement_achieved": true,
+    "updated_at": "2026-03-10T00:30:15.573Z"
+  }
+},
+{
+  "model": "bodylog.dailyrecord",
+  "pk": 17,
+  "fields": {
+    "log_date": "2026-03-17",
+    "breakfast": "活力＋VM1122",
+    "lunch": "D24＋ジュニアバランス",
+    "dinner": "NB",
+    "weight_kg": null,
+    "visceral_fat_level": null,
+    "exercise": "",
+    "execution": "",
+    "replacement_achieved": true,
+    "updated_at": "2026-03-10T00:30:16.219Z"
+  }
+}
+]
