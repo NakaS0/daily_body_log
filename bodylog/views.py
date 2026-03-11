@@ -199,8 +199,6 @@ def _build_month_context(display_year: int, display_month: int) -> dict[str, obj
     calendar_days = []
     previous_weight = ""
     previous_visceral = ""
-    today_weight_placeholder = ""
-    today_visceral_placeholder = ""
     monthly_total_exercise_minutes = 0
     chart_points: list[dict[str, object]] = []
 
@@ -224,10 +222,6 @@ def _build_month_context(display_year: int, display_month: int) -> dict[str, obj
         if record:
             monthly_total_exercise_minutes += _parse_exercise_minutes(record.exercise)
 
-        if current_day == today:
-            today_weight_placeholder = "" if weight_value else previous_weight
-            today_visceral_placeholder = "" if visceral_value else previous_visceral
-
         chart_points.append(
             {
                 "day": day_number,
@@ -249,8 +243,6 @@ def _build_month_context(display_year: int, display_month: int) -> dict[str, obj
             "dinner_selected": _split_multi_value(dinner_value),
             "weight_value": weight_value,
             "visceral_value": visceral_value,
-            "weight_placeholder": "" if weight_value else previous_weight,
-            "visceral_placeholder": "" if visceral_value else previous_visceral,
             "replacement_count": replacement_count,
             "replacement_complete": replacement_complete,
             "lifestyle_tone": _lifestyle_tone(breakfast_value, lunch_value, dinner_value),
@@ -323,8 +315,6 @@ def _build_month_context(display_year: int, display_month: int) -> dict[str, obj
             if today_record and today_record.visceral_fat_level is not None
             else ""
         ),
-        "today_weight_placeholder": today_weight_placeholder,
-        "today_visceral_placeholder": today_visceral_placeholder,
         "display_year": display_year,
         "display_month": display_month,
         "month_label": first_day.strftime("%Y年 %m月"),

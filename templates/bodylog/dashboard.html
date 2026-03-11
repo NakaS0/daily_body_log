@@ -64,7 +64,7 @@
             flex-wrap: wrap;
         }
 
-        .nav-button, .graph-button, .count-button, .chat-submit, .suggestion-button {
+        .nav-button, .graph-button, .count-button, .prev-day-button, .chat-submit, .suggestion-button {
             border: 0;
             border-radius: 14px;
             cursor: pointer;
@@ -89,7 +89,7 @@
             color: #fff;
         }
 
-        .nav-button:hover, .graph-button:hover, .count-button:hover, .chat-submit:hover, .suggestion-button:hover, .fab:hover {
+        .nav-button:hover, .graph-button:hover, .count-button:hover, .prev-day-button:hover, .chat-submit:hover, .suggestion-button:hover, .fab:hover {
             transform: translateY(-1px);
             opacity: 0.94;
         }
@@ -172,9 +172,24 @@
             font-weight: 800;
         }
 
+        .prev-day-button {
+            padding: 8px 10px;
+            background: #eef4ea;
+            color: var(--text);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
         .quick-grid {
             display: grid;
-            grid-template-columns: repeat(8, minmax(0, 1fr));
+            grid-template-columns:
+                17ch
+                22ch
+                17ch
+                minmax(98px, 108px)
+                minmax(98px, 108px)
+                minmax(120px, 132px)
+                minmax(220px, 1.55fr);
             gap: 12px;
         }
 
@@ -203,6 +218,24 @@
 
         .field-input::placeholder, .table-input::placeholder { color: #93a39b; }
 
+        .field-select[name="breakfast"],
+        .table-select[name="breakfast"] {
+            min-width: 17ch;
+            width: 17ch;
+        }
+
+        .field-select[name="lunch"],
+        .table-select[name="lunch"] {
+            min-width: 22ch;
+            width: 22ch;
+        }
+
+        .field-select[name="dinner"],
+        .table-select[name="dinner"] {
+            min-width: 17ch;
+            width: 17ch;
+        }
+
         .metric-input { max-width: 112px; }
 
         .message {
@@ -217,7 +250,7 @@
         .message-error { background: #fde8e6; color: #8c2e2a; }
 
         .table-scroll { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 1560px; }
+        table { width: 100%; border-collapse: collapse; min-width: 1540px; }
         th, td { padding: 10px 8px; border-bottom: 1px solid #e2eadb; text-align: left; vertical-align: middle; }
         th { font-size: 14px; color: var(--muted); white-space: nowrap; }
         th.achievement-header { transform: none; }
@@ -228,8 +261,50 @@
             border-top: 1px solid #dce6d3;
         }
         td.date-cell { white-space: nowrap; font-weight: 700; }
-        .count-cell { min-width: 138px; }
-        .count-tools { display: flex; align-items: center; gap: 8px; }
+        .count-cell { min-width: 124px; }
+        .count-tools { display: flex; align-items: flex-start; gap: 8px; position: relative; }
+        .count-help {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 4px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 1px solid #ccd7c5;
+            background: #f3f7ee;
+            color: #6f8175;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: help;
+            flex: 0 0 auto;
+        }
+        .count-help-tooltip {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            z-index: 20;
+            min-width: 220px;
+            max-width: 280px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(24, 51, 42, 0.96);
+            color: #fff;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre-line;
+            box-shadow: 0 12px 24px rgba(24, 51, 42, 0.24);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-4px);
+            transition: opacity 0.12s ease, transform 0.12s ease;
+        }
+        .count-help:hover .count-help-tooltip,
+        .count-help:focus-visible .count-help-tooltip {
+            opacity: 1;
+            transform: translateY(0);
+        }
         .achievement-mark {
             display: inline-flex;
             align-items: center;
@@ -260,6 +335,22 @@
             background: transparent;
         }
         .table-input.metric-input { width: 92px; }
+        .table-scroll th:nth-child(8),
+        .table-scroll td:nth-child(8) { padding-left: 2px; }
+        .table-scroll th:nth-child(4),
+        .table-scroll td:nth-child(4) { width: 15ch; }
+        .table-scroll th:nth-child(5),
+        .table-scroll td:nth-child(5) { width: 19ch; }
+        .table-scroll th:nth-child(6),
+        .table-scroll td:nth-child(6) { width: 15ch; }
+        .table-scroll th:nth-child(7),
+        .table-scroll td:nth-child(7) { width: 104px; }
+        .table-scroll th:nth-child(8),
+        .table-scroll td:nth-child(8) { width: 104px; }
+        .table-scroll th:nth-child(9),
+        .table-scroll td:nth-child(9) { width: 139px; }
+        .table-scroll th:nth-child(10),
+        .table-scroll td:nth-child(10) { min-width: 240px; }
         .status-bar { min-height: 22px; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: var(--muted); }
         .status-bar.error { color: var(--danger); }
 
@@ -414,7 +505,7 @@
                 <h1 class="hero-title">{{ month_label }}</h1>
                 <span class="hero-pill">
                     <span class="hero-pill-label">月間運動時間</span>
-                    <span class="hero-pill-value">{{ monthly_total_exercise_label }}</span>
+                    <span class="hero-pill-value" id="monthly-total-exercise">{{ monthly_total_exercise_label }}</span>
                 </span>
             </div>
         </section>
@@ -459,11 +550,11 @@
                 </label>
                 <label class="field-block">
                     <span class="field-label">体重</span>
-                    <input class="field-input metric-input" type="number" step="0.1" min="0" name="weight_kg" data-field="weight_kg" value="{{ today_weight_value }}" placeholder="{{ today_weight_placeholder }}">
+                    <input class="field-input metric-input" type="number" step="0.1" min="0" name="weight_kg" data-field="weight_kg" value="{{ today_weight_value }}">
                 </label>
                 <label class="field-block">
                     <span class="field-label">内臓脂肪</span>
-                    <input class="field-input metric-input" type="number" step="0.1" min="0" name="visceral_fat_level" data-field="visceral_fat_level" value="{{ today_visceral_value }}" placeholder="{{ today_visceral_placeholder }}">
+                    <input class="field-input metric-input" type="number" step="0.1" min="0" name="visceral_fat_level" data-field="visceral_fat_level" value="{{ today_visceral_value }}">
                 </label>
                 <label class="field-block">
                     <span class="field-label">運動時間</span>
@@ -476,7 +567,7 @@
                         {% endfor %}
                     </select>
                 </label>
-                <label class="field-block" style="grid-column: span 2;">
+                <label class="field-block">
                     <span class="field-label">備考</span>
                     <input class="field-input" type="text" name="execution" data-field="execution" value="{% if today_record %}{{ today_record.execution }}{% endif %}">
                 </label>
@@ -561,10 +652,11 @@
                                         {% endfor %}
                                     </select>
                                 </td>
-                                <td><input class="table-input metric-input" type="number" step="0.1" min="0" name="weight_kg" data-field="weight_kg" data-cell="4" value="{{ day.weight_value }}" placeholder="{{ day.weight_placeholder }}"></td>
-                                <td><input class="table-input metric-input" type="number" step="0.1" min="0" name="visceral_fat_level" data-field="visceral_fat_level" data-cell="5" value="{{ day.visceral_value }}" placeholder="{{ day.visceral_placeholder }}"></td>
+                                <td><input class="table-input metric-input" type="number" step="0.1" min="0" name="weight_kg" data-field="weight_kg" data-cell="4" value="{{ day.weight_value }}"></td>
+                                <td><input class="table-input metric-input" type="number" step="0.1" min="0" name="visceral_fat_level" data-field="visceral_fat_level" data-cell="5" value="{{ day.visceral_value }}"></td>
+                                <td><button type="button" class="prev-day-button" data-use-previous data-cell="6">前日</button></td>
                                 <td>
-                                    <select class="table-select" name="exercise" data-field="exercise" data-cell="6">
+                                    <select class="table-select" name="exercise" data-field="exercise" data-cell="7">
                                         <option value="">---</option>
                                         {% for option in exercise_options %}
                                             {% if option %}
@@ -573,7 +665,7 @@
                                         {% endfor %}
                                     </select>
                                 </td>
-                                <td><input class="table-input" type="text" name="execution" data-field="execution" data-cell="7" value="{% if day.record %}{{ day.record.execution }}{% endif %}"></td>
+                                <td><input class="table-input" type="text" name="execution" data-field="execution" data-cell="8" value="{% if day.record %}{{ day.record.execution }}{% endif %}"></td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -831,6 +923,84 @@
                 });
                 updateAchievementMark(target);
             });
+            updateMonthlyExerciseTotal();
+        }
+
+        function parseExerciseMinutes(value) {
+            const text = value.trim();
+            if (!text) {
+                return 0;
+            }
+            let hours = 0;
+            let minutes = 0;
+            const hourMatch = text.match(/(\d+)時間/);
+            const minuteMatch = text.match(/(\d+)分/);
+            if (hourMatch) {
+                hours = Number.parseInt(hourMatch[1], 10);
+            }
+            if (minuteMatch) {
+                minutes = Number.parseInt(minuteMatch[1], 10);
+            }
+            return hours * 60 + minutes;
+        }
+
+        function formatExerciseMinutes(totalMinutes) {
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            if (hours && minutes) {
+                return `${hours}時間${minutes}分`;
+            }
+            if (hours) {
+                return `${hours}時間`;
+            }
+            return `${minutes}分`;
+        }
+
+        function updateMonthlyExerciseTotal() {
+            const totalNode = document.getElementById("monthly-total-exercise");
+            if (!totalNode) {
+                return;
+            }
+            const totalMinutes = Array.from(document.querySelectorAll('.table-row [data-field="exercise"]'))
+                .reduce((sum, field) => sum + parseExerciseMinutes(field.value), 0);
+            totalNode.textContent = formatExerciseMinutes(totalMinutes);
+        }
+
+        function ensurePreviousDayHeaders() {
+            document.querySelectorAll(".table-scroll thead tr, .table-scroll .subheader-row").forEach((row) => {
+                const headers = row.querySelectorAll("th");
+                if (headers.length >= 10 && !Array.from(headers).some((header) => header.textContent.trim() === "前日")) {
+                    const previousDayHeader = document.createElement("th");
+                    previousDayHeader.textContent = "前日";
+                    row.insertBefore(previousDayHeader, headers[8]);
+                }
+            });
+        }
+
+        function applyPreviousDayMetrics(scope) {
+            const rows = Array.from(document.querySelectorAll(".table-row"));
+            const rowIndex = rows.indexOf(scope);
+            if (rowIndex <= 0) {
+                showGlobalStatus("前日の行がないため入力できません", true);
+                return;
+            }
+
+            const previousRow = rows[rowIndex - 1];
+            const previousWeight = previousRow.querySelector('[data-field="weight_kg"]');
+            const previousVisceral = previousRow.querySelector('[data-field="visceral_fat_level"]');
+            const weightField = scope.querySelector('[data-field="weight_kg"]');
+            const visceralField = scope.querySelector('[data-field="visceral_fat_level"]');
+
+            if (!previousWeight || !previousVisceral || !weightField || !visceralField) {
+                showGlobalStatus("前日データの参照に失敗しました", true);
+                return;
+            }
+
+            weightField.value = previousWeight.value;
+            visceralField.value = previousVisceral.value;
+            scheduleSave(scope);
+            syncTodayScopes(scope);
+            showGlobalStatus(`${scope.dataset.date} に前日値を入力しました`);
         }
 
         // 保存結果やエラーを上部ステータス欄に表示する。
@@ -1063,6 +1233,9 @@
                         setMealSelectColor(field);
                         updateAchievementMark(scope);
                     }
+                    if (field.name === "exercise") {
+                        updateMonthlyExerciseTotal();
+                    }
                     scheduleSave(scope);
                     syncTodayScopes(scope);
                 });
@@ -1073,15 +1246,6 @@
                     }
                 });
                 field.addEventListener("keydown", (event) => {
-                    if (field.type === "number" && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
-                        const direction = event.key === "ArrowUp" ? 1 : -1;
-                        if (applyPlaceholderStep(field, direction)) {
-                            event.preventDefault();
-                            scheduleSave(scope);
-                            syncTodayScopes(scope);
-                            return;
-                        }
-                    }
                     if (!field.closest(".table-row")) {
                         return;
                     }
@@ -1103,9 +1267,16 @@
             scope.querySelectorAll("[data-set-count]").forEach((button) => {
                 button.addEventListener("click", () => setReplacementValues(scope, button.dataset.setCount));
             });
+            scope.querySelectorAll("[data-use-previous]").forEach((button) => {
+                button.addEventListener("click", () => applyPreviousDayMetricsUniversal(scope));
+            });
         });
 
+        ensureTodayPreviousButton();
+        ensurePreviousDayHeaders();
+        ensureCountActionHelp();
         setAllMealSelectColors();
+        updateMonthlyExerciseTotal();
 
         loadTargetWeight();
         graphModeButtons.forEach((button) => {
@@ -1158,6 +1329,221 @@
             appendChatMessage("bot", buildChatReply(message));
             chatInput.value = "";
         });
+
+        function ensureTodayPreviousButton() {
+            const todayScope = document.querySelector('.entry-scope[data-scope="today-card"]');
+            if (!todayScope || todayScope.querySelector('[data-use-previous]')) {
+                return;
+            }
+            const visceralBlock = todayScope.querySelector('[data-field="visceral_fat_level"]')?.closest(".field-block");
+            if (!visceralBlock) {
+                return;
+            }
+            const block = document.createElement("label");
+            block.className = "field-block";
+            block.innerHTML = `
+                <span class="field-label">蜑肴律</span>
+                <button type="button" class="prev-day-button" data-use-previous style="min-height: 44px;">蜑肴律</button>
+            `;
+            visceralBlock.insertAdjacentElement("afterend", block);
+            block.querySelector("[data-use-previous]")?.addEventListener("click", () => applyPreviousDayMetricsUniversal(todayScope));
+        }
+
+        function applyPreviousDayMetricsUniversal(scope) {
+            const rows = Array.from(document.querySelectorAll(".table-row"));
+            let previousRow = null;
+            if (scope.classList.contains("table-row")) {
+                const rowIndex = rows.indexOf(scope);
+                previousRow = rowIndex > 0 ? rows[rowIndex - 1] : null;
+            } else {
+                const scopeDate = scope.dataset.date;
+                previousRow = rows
+                    .filter((row) => row.dataset.date < scopeDate)
+                    .sort((a, b) => a.dataset.date.localeCompare(b.dataset.date))
+                    .at(-1) || null;
+            }
+            if (!previousRow) {
+                showGlobalStatus("蜑肴律縺ｮ陦後′縺ｪ縺・◆繧∝・蜉帙〒縺阪∪縺帙ｓ", true);
+                return;
+            }
+
+            const previousWeight = previousRow.querySelector('[data-field="weight_kg"]');
+            const previousVisceral = previousRow.querySelector('[data-field="visceral_fat_level"]');
+            const weightField = scope.querySelector('[data-field="weight_kg"]');
+            const visceralField = scope.querySelector('[data-field="visceral_fat_level"]');
+            if (!previousWeight || !previousVisceral || !weightField || !visceralField) {
+                showGlobalStatus("蜑肴律繝・・繧ｿ縺ｮ蜿ら・縺ｫ螟ｱ謨励＠縺ｾ縺励◆", true);
+                return;
+            }
+
+            weightField.value = previousWeight.value;
+            visceralField.value = previousVisceral.value;
+            scheduleSave(scope);
+            syncTodayScopes(scope);
+            showGlobalStatus(`${scope.dataset.date} 縺ｫ蜑肴律蛟､繧貞・蜉帙＠縺ｾ縺励◆`);
+        }
+
+        function saveScope(scope) {
+            const dateValue = scope.dataset.date;
+            const formData = new FormData();
+            ["breakfast", "lunch", "dinner", "weight_kg", "visceral_fat_level", "exercise", "execution"].forEach((fieldName) => {
+                const field = scope.querySelector(`[data-field="${fieldName}"]`);
+                formData.append(fieldName, field ? field.value : "");
+            });
+            return fetch(`/api/records/${dateValue}/`, {
+                method: "POST",
+                headers: { "X-CSRFToken": csrfToken },
+                body: formData
+            })
+                .then(async (response) => {
+                    const payload = await response.json();
+                    if (!response.ok || !payload.ok) {
+                        throw new Error(payload.error || "\u4fdd\u5b58\u306b\u5931\u6557\u3057\u307e\u3057\u305f");
+                    }
+                    updateAchievementMark(scope);
+                    syncTodayScopes(scope);
+                    showGlobalStatus(`${dateValue} \u3092\u4fdd\u5b58\u3057\u307e\u3057\u305f`);
+                })
+                .catch((error) => {
+                    showGlobalStatus(error.message, true);
+                });
+        }
+
+        function ensureTodayPreviousButton() {
+            const todayScope = document.querySelector('.entry-scope[data-scope="today-card"]');
+            if (!todayScope) {
+                return;
+            }
+
+            todayScope.querySelectorAll('.field-block[data-generated-previous-button]').forEach((node) => node.remove());
+            const quickTitleGroup = todayScope.querySelector(".quick-title-group");
+            const firstCountButton = quickTitleGroup?.querySelector("[data-set-count]");
+            if (!quickTitleGroup || !firstCountButton) {
+                return;
+            }
+
+            const existingButton = quickTitleGroup.querySelector("[data-use-previous]");
+            if (existingButton) {
+                existingButton.remove();
+            }
+
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "prev-day-button";
+            button.dataset.usePrevious = "";
+            button.textContent = "\u524d\u65e5";
+            button.addEventListener("click", () => applyPreviousDayMetricsUniversal(todayScope));
+            quickTitleGroup.insertBefore(button, firstCountButton);
+        }
+
+        function ensurePreviousDayHeaders() {
+            document.querySelectorAll(".table-scroll thead tr, .table-scroll .subheader-row").forEach((row) => {
+                row.querySelectorAll("th").forEach((header) => {
+                    const text = header.textContent.trim();
+                    if (text === "\u524d\u65e5" || text === "蜑肴律") {
+                        header.remove();
+                    }
+                });
+            });
+
+            document.querySelectorAll(".table-row").forEach((scope) => {
+                scope.querySelectorAll('td > .prev-day-button[data-cell="6"]').forEach((button) => {
+                    button.closest("td")?.remove();
+                });
+
+                const countTools = scope.querySelector(".count-tools");
+                const firstCountButton = countTools?.querySelector("[data-set-count]");
+                if (!countTools || !firstCountButton) {
+                    return;
+                }
+
+                countTools.querySelectorAll("[data-use-previous]").forEach((button) => button.remove());
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "prev-day-button";
+                button.dataset.usePrevious = "";
+                button.textContent = "\u524d\u65e5";
+                button.addEventListener("click", () => applyPreviousDayMetricsUniversal(scope));
+                countTools.insertBefore(button, firstCountButton);
+            });
+        }
+
+        function buildCountHelpNode() {
+            const help = document.createElement("span");
+            help.className = "count-help";
+            help.tabIndex = 0;
+            help.setAttribute("aria-label", "\u30dc\u30bf\u30f3\u306e\u8aac\u660e");
+            help.textContent = "?";
+
+            const tooltip = document.createElement("span");
+            tooltip.className = "count-help-tooltip";
+            tooltip.textContent =
+                "\u524d\u65e5: \u524d\u65e5\u306e\u671d\u98df\u30fb\u663c\u98df\u30fb\u5915\u98df\u30fb\u4f53\u91cd\u30fb\u5185\u81d3\u8102\u80aa\u3092\u5165\u529b\n" +
+                "2: 2\u98df\u7f6e\u304d\u63db\u3048\u306e\u7d44\u307f\u5408\u308f\u305b\u3092\u5165\u529b\n" +
+                "3: 3\u98df\u7f6e\u304d\u63db\u3048\u306e\u7d44\u307f\u5408\u308f\u305b\u3092\u5165\u529b";
+            help.appendChild(tooltip);
+            return help;
+        }
+
+        function ensureCountActionHelp() {
+            const todayGroup = document.querySelector('.entry-scope[data-scope="today-card"] .quick-title-group');
+            if (todayGroup) {
+                todayGroup.querySelectorAll(".count-help").forEach((node) => node.remove());
+                todayGroup.appendChild(buildCountHelpNode());
+            }
+
+            document.querySelectorAll(".table-row .count-tools").forEach((countTools) => {
+                countTools.querySelectorAll(".count-help").forEach((node) => node.remove());
+            });
+
+            document.querySelectorAll(".table-scroll thead tr th:nth-child(2), .table-scroll .subheader-row th:nth-child(2)").forEach((headerCell) => {
+                headerCell.querySelectorAll(".count-help").forEach((node) => node.remove());
+                headerCell.appendChild(buildCountHelpNode());
+            });
+        }
+
+        function applyPreviousDayMetricsUniversal(scope) {
+            const rows = Array.from(document.querySelectorAll(".table-row"));
+            let previousRow = null;
+            if (scope.classList.contains("table-row")) {
+                const rowIndex = rows.indexOf(scope);
+                previousRow = rowIndex > 0 ? rows[rowIndex - 1] : null;
+            } else {
+                const scopeDate = scope.dataset.date;
+                previousRow = rows
+                    .filter((row) => row.dataset.date < scopeDate)
+                    .sort((a, b) => a.dataset.date.localeCompare(b.dataset.date))
+                    .at(-1) || null;
+            }
+            if (!previousRow) {
+                showGlobalStatus("\u524d\u65e5\u306e\u884c\u304c\u306a\u3044\u305f\u3081\u5165\u529b\u3067\u304d\u307e\u305b\u3093", true);
+                return;
+            }
+
+            const fieldsToCopy = ["breakfast", "lunch", "dinner", "weight_kg", "visceral_fat_level"];
+            const missingField = fieldsToCopy.some((fieldName) => {
+                const from = previousRow.querySelector(`[data-field="${fieldName}"]`);
+                const to = scope.querySelector(`[data-field="${fieldName}"]`);
+                return !from || !to;
+            });
+            if (missingField) {
+                showGlobalStatus("\u524d\u65e5\u30c7\u30fc\u30bf\u306e\u53c2\u7167\u306b\u5931\u6557\u3057\u307e\u3057\u305f", true);
+                return;
+            }
+
+            fieldsToCopy.forEach((fieldName) => {
+                const from = previousRow.querySelector(`[data-field="${fieldName}"]`);
+                const to = scope.querySelector(`[data-field="${fieldName}"]`);
+                to.value = from.value;
+                if (to.classList.contains("meal-select")) {
+                    setMealSelectColor(to);
+                }
+            });
+            updateAchievementMark(scope);
+            scheduleSave(scope);
+            syncTodayScopes(scope);
+            showGlobalStatus(`${scope.dataset.date} \u306b\u524d\u65e5\u5024\u3092\u5165\u529b\u3057\u307e\u3057\u305f`);
+        }
     </script>
 </body>
 </html>

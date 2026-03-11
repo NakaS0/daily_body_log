@@ -76,3 +76,6 @@ python manage.py watch_omron_csv
 
 - Django 版: `db.sqlite3`
 - `data/` 配下は `.gitignore` で除外済みです（`data/.gitkeep` のみ追跡）
+## Screen Demo
+
+![Dashboard demo](docs/assets/dashboard-demo-20260311.gif)

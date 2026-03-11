@@ -1,6 +1,7 @@
 """OMRON CSV を解析し、DailyRecord に取り込むための補助関数群。"""
 
 import csv
+import json
 import shutil
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -166,6 +167,71 @@ def import_uploaded_csv(uploaded_file: BinaryIO) -> int:
     decoded = _decode_uploaded_csv(uploaded_file)
     reader = csv.DictReader(decoded.splitlines())
     return _import_reader(reader)
+
+
+def _parse_fixture_decimal(raw_value: str | None) -> Decimal | None:
+    """JSON fixture の数値文字列を Decimal に変換する。"""
+    if raw_value in (None, ""):
+        return None
+    try:
+        return Decimal(str(raw_value)).quantize(Decimal("0.1"))
+    except InvalidOperation as exc:
+        raise ValueError(f"JSON 内の数値を解釈できません: {raw_value}") from exc
+
+
+def import_json_fixture(json_path: Path) -> int:
+    """Django fixture 形式の JSON から DailyRecord を upsert する。"""
+    if not json_path.exists():
+        return 0
+
+    raw = json_path.read_bytes()
+    payload = None
+    for encoding in ("utf-8-sig", "cp932", "utf-8"):
+        try:
+            payload = json.loads(raw.decode(encoding))
+            break
+        except UnicodeDecodeError:
+            continue
+
+    if payload is None:
+        raise ValueError("JSON fixture の文字コードを判定できません")
+
+    if not isinstance(payload, list):
+        raise ValueError("JSON fixture は配列形式である必要があります")
+
+    imported_count = 0
+    for item in payload:
+        if not isinstance(item, dict):
+            raise ValueError("JSON fixture の各要素はオブジェクト形式である必要があります")
+        if item.get("model") != "bodylog.dailyrecord":
+            continue
+
+        fields = item.get("fields")
+        if not isinstance(fields, dict):
+            raise ValueError("JSON fixture の fields が不正です")
+
+        raw_date = fields.get("log_date")
+        if not raw_date:
+            raise ValueError("JSON fixture に log_date がありません")
+
+        try:
+            log_date = datetime.strptime(str(raw_date), "%Y-%m-%d").date()
+        except ValueError as exc:
+            raise ValueError(f"log_date の形式が不正です: {raw_date}") from exc
+
+        record, _ = DailyRecord.objects.get_or_create(log_date=log_date)
+        record.breakfast = str(fields.get("breakfast", ""))
+        record.lunch = str(fields.get("lunch", ""))
+        record.dinner = str(fields.get("dinner", ""))
+        record.weight_kg = _parse_fixture_decimal(fields.get("weight_kg"))
+        record.visceral_fat_level = _parse_fixture_decimal(fields.get("visceral_fat_level"))
+        record.exercise = str(fields.get("exercise", ""))
+        record.execution = str(fields.get("execution", ""))
+        record.replacement_achieved = bool(fields.get("replacement_achieved", False))
+        record.save()
+        imported_count += 1
+
+    return imported_count
 
 
 def move_processed_file(source_path: Path, target_dir: Path) -> Path:
