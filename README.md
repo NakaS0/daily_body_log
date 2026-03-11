@@ -2,6 +2,10 @@
 
 朝・昼・晩に食べたもの、体重、内臓脂肪、運動を日単位で記録するアプリです。
 
+## Screen Demo
+
+![Dashboard demo](docs/assets/dashboard-demo-20260311.gif)
+
 ## 開発背景
 減量合宿での経験を、一時的なイベントで終わらせず、日常生活で継続・定着させるための自己管理ツールが必要だと考え、開発に至りました。
 
@@ -76,6 +80,3 @@ python manage.py watch_omron_csv
 
 - Django 版: `db.sqlite3`
 - `data/` 配下は `.gitignore` で除外済みです（`data/.gitkeep` のみ追跡）
-## Screen Demo
-
-![Dashboard demo](docs/assets/dashboard-demo-20260311.gif)
