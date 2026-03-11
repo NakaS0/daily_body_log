@@ -3,7 +3,7 @@
 朝・昼・晩に食べたもの、体重、内臓脂肪、運動を日単位で記録するアプリです。
 
 ## Screen Demo
-
+Updated: 2026-03-11
 ![Dashboard demo](docs/assets/dashboard-demo-20260311.gif)
 
 ## 開発背景
