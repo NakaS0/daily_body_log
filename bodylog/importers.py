@@ -1,20 +1,28 @@
-"""OMRON CSV を解析し、DailyRecord に取り込むための補助関数群。"""
+"""Import and export helpers for DailyRecord data."""
 
 import csv
 import json
 import shutil
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import BinaryIO, TextIO
+
+from django.core import serializers
 
 from .models import DailyRecord
 
 DATE_COLUMN_CANDIDATES = [
     "date",
+    "day",
+    "datetime",
+    "timestamp",
+    "measured date",
     "measurement date",
     "measured at",
+    "計測日",
     "測定日",
+    "測定日時",
     "日付",
     "日時",
 ]
@@ -22,17 +30,31 @@ DATE_COLUMN_CANDIDATES = [
 WEIGHT_COLUMN_CANDIDATES = [
     "weight",
     "weight(kg)",
+    "weight kg",
     "body weight",
     "体重",
 ]
 
 VISCERAL_COLUMN_CANDIDATES = [
+    "body fat",
+    "body fat percentage",
+    "body fat %",
+    "body fat percent",
+    "fat %",
+    "fat percent",
+    "体脂肪(%)",
+    "体脂肪率",
+    "体脂肪率(%)",
+    "体脂肪率％",
+    "体脂肪",
+    # Backward-compatible fallbacks for older CSV exports.
     "visceral fat",
     "visceral fat level",
     "visceral fat percentage",
+    "visceral fat %",
     "内臓脂肪",
     "内臓脂肪レベル",
-    "内臓脂肪値",
+    "内臓脂肪率",
 ]
 
 DATE_FORMATS = [
@@ -49,12 +71,12 @@ DATE_FORMATS = [
 
 
 def _normalize_header(value: str) -> str:
-    """ヘッダー名を比較しやすいように小文字・空白整形する。"""
-    return " ".join(value.strip().lower().replace("_", " ").split())
+    normalized = value.strip().lower().replace("_", " ")
+    normalized = normalized.replace("（", "(").replace("）", ")")
+    return " ".join(normalized.split())
 
 
 def _find_column(fieldnames: list[str], candidates: list[str]) -> str | None:
-    """候補名の中から、CSV に存在する列名をできるだけ柔軟に探す。"""
     normalized_fields = {_normalize_header(name): name for name in fieldnames}
     for candidate in candidates:
         match = normalized_fields.get(_normalize_header(candidate))
@@ -68,19 +90,41 @@ def _find_column(fieldnames: list[str], candidates: list[str]) -> str | None:
     return None
 
 
-def _parse_date(raw_value: str) -> datetime.date:
-    """複数の書式に対応しながら日付文字列を date に変換する。"""
+def _has_supported_columns(fieldnames: list[str]) -> bool:
+    date_column = _find_column(fieldnames, DATE_COLUMN_CANDIDATES)
+    weight_column = _find_column(fieldnames, WEIGHT_COLUMN_CANDIDATES)
+    visceral_column = _find_column(fieldnames, VISCERAL_COLUMN_CANDIDATES)
+    return bool(date_column and (weight_column or visceral_column))
+
+
+def _build_reader_from_lines(lines: list[str]) -> csv.DictReader:
+    if not lines:
+        raise ValueError("CSV does not have headers")
+
+    search_limit = min(len(lines), 10)
+    for start_index in range(search_limit):
+        reader = csv.DictReader(lines[start_index:])
+        fieldnames = reader.fieldnames or []
+        if _has_supported_columns(fieldnames):
+            return reader
+
+    reader = csv.DictReader(lines)
+    if not (reader.fieldnames or []):
+        raise ValueError("CSV does not have headers")
+    return reader
+
+
+def _parse_date(raw_value: str) -> date:
     value = raw_value.strip()
     for fmt in DATE_FORMATS:
         try:
             return datetime.strptime(value, fmt).date()
         except ValueError:
             continue
-    raise ValueError(f"日付を解釈できません: {raw_value}")
+    raise ValueError(f"Could not parse date: {raw_value}")
 
 
 def _parse_decimal(raw_value: str) -> Decimal | None:
-    """CSV 内の数値文字列を Decimal へ変換し、空欄は None にする。"""
     value = raw_value.strip()
     if not value:
         return None
@@ -88,14 +132,13 @@ def _parse_decimal(raw_value: str) -> Decimal | None:
     try:
         parsed = Decimal(normalized)
     except InvalidOperation as exc:
-        raise ValueError(f"数値を解釈できません: {raw_value}") from exc
+        raise ValueError(f"Could not parse number: {raw_value}") from exc
     if parsed <= 0:
         return None
     return parsed.quantize(Decimal("0.1"))
 
 
 def _open_csv_text(path: Path) -> TextIO:
-    """文字コードの違いを考慮して CSV ファイルを開く。"""
     try:
         return path.open("r", newline="", encoding="utf-8-sig")
     except UnicodeDecodeError:
@@ -103,33 +146,31 @@ def _open_csv_text(path: Path) -> TextIO:
 
 
 def _decode_uploaded_csv(uploaded_file: BinaryIO) -> str:
-    """アップロード済みバイナリを文字列へ復号し、扱える CSV テキストにする。"""
     raw = uploaded_file.read()
     for encoding in ("utf-8-sig", "cp932", "utf-8"):
         try:
             return raw.decode(encoding)
         except UnicodeDecodeError:
             continue
-    raise ValueError("CSV の文字コードを判定できませんでした")
+    raise ValueError("Could not determine CSV encoding")
 
 
 def _import_reader(reader: csv.DictReader) -> int:
-    """DictReader から日付・体重・内臓脂肪を読み取り DB へ保存する。"""
     fieldnames = reader.fieldnames or []
     if not fieldnames:
-        raise ValueError("CSV にヘッダー行がありません")
+        raise ValueError("CSV does not have headers")
 
     date_column = _find_column(fieldnames, DATE_COLUMN_CANDIDATES)
     weight_column = _find_column(fieldnames, WEIGHT_COLUMN_CANDIDATES)
     visceral_column = _find_column(fieldnames, VISCERAL_COLUMN_CANDIDATES)
 
     if not date_column:
-        raise ValueError("日付列を特定できませんでした")
+        raise ValueError("Could not find a date column in CSV")
     if not weight_column and not visceral_column:
-        raise ValueError("体重列または内臓脂肪列を特定できませんでした")
+        raise ValueError("Could not find weight or body fat percentage columns in CSV")
 
-    imported_count = 0
-    # 1 行ずつ読み込み、値がある日だけ DailyRecord を更新する。
+    # For duplicate dates in a CSV, keep the row with the lowest weight.
+    selected_rows: dict[date, tuple[Decimal | None, Decimal | None]] = {}
     for row in reader:
         raw_date = (row.get(date_column) or "").strip()
         if not raw_date:
@@ -142,6 +183,26 @@ def _import_reader(reader: csv.DictReader) -> int:
         if weight_value is None and visceral_value is None:
             continue
 
+        current = selected_rows.get(log_date)
+        if current is None:
+            selected_rows[log_date] = (weight_value, visceral_value)
+            continue
+
+        current_weight, current_visceral = current
+        if weight_value is None:
+            if current_weight is None and visceral_value is not None:
+                selected_rows[log_date] = (current_weight, visceral_value)
+            continue
+
+        if current_weight is None or weight_value < current_weight:
+            selected_rows[log_date] = (weight_value, visceral_value)
+            continue
+
+        if weight_value == current_weight and current_visceral is None and visceral_value is not None:
+            selected_rows[log_date] = (weight_value, visceral_value)
+
+    imported_count = 0
+    for log_date, (weight_value, visceral_value) in selected_rows.items():
         record, _ = DailyRecord.objects.get_or_create(log_date=log_date)
         if weight_value is not None:
             record.weight_kg = weight_value
@@ -154,33 +215,29 @@ def _import_reader(reader: csv.DictReader) -> int:
 
 
 def import_csv_records(csv_path: Path) -> int:
-    """ローカルの CSV ファイルを読み込んで件数を返す。"""
     if not csv_path.exists():
         return 0
     with _open_csv_text(csv_path) as handle:
-        reader = csv.DictReader(handle)
+        reader = _build_reader_from_lines(handle.read().splitlines())
         return _import_reader(reader)
 
 
 def import_uploaded_csv(uploaded_file: BinaryIO) -> int:
-    """Web 画面から受け取った CSV を読み込んで件数を返す。"""
     decoded = _decode_uploaded_csv(uploaded_file)
-    reader = csv.DictReader(decoded.splitlines())
+    reader = _build_reader_from_lines(decoded.splitlines())
     return _import_reader(reader)
 
 
 def _parse_fixture_decimal(raw_value: str | None) -> Decimal | None:
-    """JSON fixture の数値文字列を Decimal に変換する。"""
     if raw_value in (None, ""):
         return None
     try:
         return Decimal(str(raw_value)).quantize(Decimal("0.1"))
     except InvalidOperation as exc:
-        raise ValueError(f"JSON 内の数値を解釈できません: {raw_value}") from exc
+        raise ValueError(f"Could not parse fixture number: {raw_value}") from exc
 
 
 def import_json_fixture(json_path: Path) -> int:
-    """Django fixture 形式の JSON から DailyRecord を upsert する。"""
     if not json_path.exists():
         return 0
 
@@ -194,30 +251,29 @@ def import_json_fixture(json_path: Path) -> int:
             continue
 
     if payload is None:
-        raise ValueError("JSON fixture の文字コードを判定できません")
-
+        raise ValueError("Could not determine JSON fixture encoding")
     if not isinstance(payload, list):
-        raise ValueError("JSON fixture は配列形式である必要があります")
+        raise ValueError("JSON fixture must be a list")
 
     imported_count = 0
     for item in payload:
         if not isinstance(item, dict):
-            raise ValueError("JSON fixture の各要素はオブジェクト形式である必要があります")
+            raise ValueError("Each JSON fixture entry must be an object")
         if item.get("model") != "bodylog.dailyrecord":
             continue
 
         fields = item.get("fields")
         if not isinstance(fields, dict):
-            raise ValueError("JSON fixture の fields が不正です")
+            raise ValueError("Invalid fields in JSON fixture")
 
         raw_date = fields.get("log_date")
         if not raw_date:
-            raise ValueError("JSON fixture に log_date がありません")
+            raise ValueError("JSON fixture entry is missing log_date")
 
         try:
             log_date = datetime.strptime(str(raw_date), "%Y-%m-%d").date()
         except ValueError as exc:
-            raise ValueError(f"log_date の形式が不正です: {raw_date}") from exc
+            raise ValueError(f"Invalid log_date: {raw_date}") from exc
 
         record, _ = DailyRecord.objects.get_or_create(log_date=log_date)
         record.breakfast = str(fields.get("breakfast", ""))
@@ -234,8 +290,15 @@ def import_json_fixture(json_path: Path) -> int:
     return imported_count
 
 
+def export_json_fixture(json_path: Path) -> int:
+    records = DailyRecord.objects.order_by("log_date")
+    payload = serializers.serialize("json", records, ensure_ascii=False, indent=2)
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    json_path.write_text(payload, encoding="utf-8")
+    return records.count()
+
+
 def move_processed_file(source_path: Path, target_dir: Path) -> Path:
-    """処理済み CSV を重複しない名前へ変えてアーカイブ先へ移動する。"""
     target_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     destination = target_dir / f"{source_path.stem}_{timestamp}{source_path.suffix}"

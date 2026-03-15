@@ -1,6 +1,9 @@
-﻿# Python cache
+# Python cache
 __pycache__/
 *.py[cod]
+
+# Node dependencies
+node_modules/
 
 # Local app data (keep folder only)
 data/*

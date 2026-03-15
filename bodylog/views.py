@@ -7,6 +7,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
+from django.templatetags.static import static
 from django.views.decorators.http import require_POST
 
 from .importers import import_uploaded_csv
@@ -22,6 +23,7 @@ BREAKFAST_OPTIONS = [
 LUNCH_OPTIONS = [
     "D24＋推奨食事",
     "D24＋ジュニアバランス",
+    "推奨食事",
     "外食",
     "サボリ",
     "なし",
@@ -30,6 +32,7 @@ LUNCH_OPTIONS = [
 DINNER_OPTIONS = [
     "NB",
     "活力＋VM1122",
+    "推奨食事",
     "外食",
     "サボリ",
     "なし",
@@ -118,6 +121,11 @@ def _replacement_meal_count(breakfast: str, lunch: str, dinner: str) -> int:
     return count
 
 
+def _recommended_meal_count(breakfast: str, lunch: str, dinner: str) -> int:
+    """推奨食事を含む食事が何食あるかを数える。"""
+    return sum(1 for meal in (breakfast, lunch, dinner) if "推奨食事" in meal)
+
+
 def _lifestyle_tone(breakfast: str, lunch: str, dinner: str) -> str:
     """食生活表示やカレンダー表示に使う状態名を返す。"""
     if not breakfast and not lunch and not dinner:
@@ -125,7 +133,8 @@ def _lifestyle_tone(breakfast: str, lunch: str, dinner: str) -> str:
     replacement_meal_count = _replacement_meal_count(breakfast, lunch, dinner)
     if replacement_meal_count >= 2:
         return "good"
-    if replacement_meal_count >= 1:
+    recommended_meal_count = _recommended_meal_count(breakfast, lunch, dinner)
+    if replacement_meal_count >= 1 or recommended_meal_count >= 2:
         return "middle"
     return "bad"
 
@@ -331,6 +340,13 @@ def _build_month_context(display_year: int, display_month: int) -> dict[str, obj
         "lunch_options": LUNCH_OPTIONS,
         "dinner_options": DINNER_OPTIONS,
         "exercise_options": EXERCISE_OPTIONS,
+        "dashboard_client_config": {
+            "lifestyleImageMap": {
+                "good": static("bodylog/good.png"),
+                "middle": static("bodylog/middle.png"),
+                "bad": static("bodylog/bad.png"),
+            }
+        },
     }
 
 
@@ -365,7 +381,7 @@ def save_record(request: HttpRequest, date_value: str) -> JsonResponse:
         weight_kg = _parse_optional_decimal(request.POST.get("weight_kg", ""), "体重")
         visceral_fat_level = _parse_optional_decimal(
             request.POST.get("visceral_fat_level", ""),
-            "内臓脂肪",
+            "体脂肪率",
         )
         exercise = request.POST.get("exercise", "").strip()
         execution = request.POST.get("execution", "").strip()
